@@ -1,0 +1,12 @@
+path: /home/user/Desktop/VipeR/datasets
+train: train/images
+val: val/images
+test: test/images
+nc: 6
+names:
+- scratch
+- dent
+- crack
+- glass_shatter
+- tire_flat
+- lamp_broken
