@@ -1,25 +1,33 @@
-# Car Damage Detection and Segmentation
+# Car Damage Detection and Analysis System
 
-This project uses Detectron2 with a ResNet-50 backbone to detect and segment car damage in images. The model is trained to identify 6 types of damage:
-
-1. Dent
-2. Scratch
-3. Crack
-4. Glass shatter
-5. Lamp broken
-6. Tire flat
+This project uses computer vision and machine learning techniques to detect, classify, and analyze car damage from images. It provides tools for both automated and manual annotation, few-shot learning for damage classification, and comprehensive reporting capabilities.
 
 ## Features
 
 - Car damage detection and segmentation using Mask R-CNN
-- Damage severity and repair cost estimation
-- Automatic annotation generation for SOD dataset format
-- Detailed damage analysis with confidence scores and bounding boxes
-- Support for both COCO and SOD dataset formats
+- Few-shot learning for damage type classification using ResNet with a 4-channel input (RGB + mask)
+- Multi-label classification for detecting multiple damage types in one image
+- Interactive annotation tools for manual labeling
+- Damage severity assessment and visual reporting
+- Automated annotation of test sets based on trained models
+- Web-based report generation and visualization
+- Side-by-side comparison of original and processed images
 
-## Dataset
+## Damage Types
 
-The project uses the CarDD dataset, which is organized in both COCO and SOD formats. The dataset structure is:
+The system classifies damage into 7 categories:
+
+1. **Dent**: Deformation of the vehicle's external panels
+2. **Scratch**: Surface abrasions affecting the paint layer
+3. **Crack**: Structural fractures in panels, glass, or plastic components
+4. **Glass Shatter**: Broken or fragmented glass components
+5. **Lamp Broken**: Damage to headlights, taillights, or signal lamps
+6. **Tire Flat**: Deflated or damaged tires
+7. **No Damage**: Areas without detectable damage
+
+## Dataset Structure
+
+The project uses the CarDD dataset, which is organized in both COCO and SOD formats:
 
 ```
 CarDD_release/
@@ -30,22 +38,22 @@ CarDD_release/
 │   └── test2017/
 └── CarDD_SOD/
     ├── CarDD-TR/
-    │   ├── CarDD-TR-Image/
-    │   ├── CarDD-TR-Mask/
-    │   └── CarDD-TR-Edge/
-    ├── CarDD-VAL/
-    └── CarDD-TE/
+    │   ├── CarDD-TR-Image/ # Training images
+    │   ├── CarDD-TR-Mask/  # Training masks
+    ├── CarDD-VAL/          # Validation data
+    └── CarDD-TE/           # Test data
+        ├── CarDD-TE-Image/ # Test images
+        └── CarDD-TE-Mask/  # Test masks
 ```
 
 ## Prerequisites
 
-- Python 3.7+
+- Python 3.8+
 - PyTorch >= 1.8.0
-- Detectron2
+- Detectron2 (for segmentation)
 - OpenCV >= 4.5.0
-- NumPy >= 1.19.0
-- Pandas >= 1.3.0
-- Matplotlib >= 3.3.0
+- scikit-learn >= 0.24.0
+- NumPy, Pandas, Matplotlib
 
 ## Installation
 
@@ -54,111 +62,114 @@ CarDD_release/
 git clone https://github.com/yourusername/car-damage-detection.git
 cd car-damage-detection
 
-# Create and activate a virtual environment (optional but recommended)
+# Create and activate a virtual environment
 python -m venv car_damage_env
 source car_damage_env/bin/activate  # On Windows: car_damage_env\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
-
-# Install Detectron2
-pip install detectron2 -f https://dl.fbaipublicfiles.com/detectron2/wheels/cu111/torch1.8/index.html
 ```
 
 ## Usage
 
-### Training the Model
+### Manual Annotation
 
-To train the model on the CarDD dataset:
-
-```bash
-python train_car_damage_model.py
-```
-
-### Evaluating the Model
-
-To evaluate the trained model and visualize results:
+To manually annotate car damage images:
 
 ```bash
-python evaluate_car_damage_model.py
+python annotate_cardd_sod.py --image_dir CarDD_release/CarDD_SOD/CarDD-TR/CarDD-TR-Image --mask_dir CarDD_release/CarDD_SOD/CarDD-TR/CarDD-TR-Mask --output_csv cardd_sod/manual_annotations.csv
 ```
 
-### Generating Annotations
+The annotation tool provides the following controls:
+- A/D: Navigate between images
+- W/S: Cycle through damage types
+- Space: Add annotation for current damage type
+- R: Remove last annotation
+- Q: Quit and save annotations
 
-To generate annotations for the SOD dataset:
+### Training a Few-Shot Model
+
+Train a damage classifier using the manually annotated examples:
 
 ```bash
-python create_sod_annotations.py
+python train_fewshot_model.py --train_csv cardd_sod/manual_annotations.csv --image_dir CarDD_release/CarDD_SOD/CarDD-TR/CarDD-TR-Image --mask_dir CarDD_release/CarDD_SOD/CarDD-TR/CarDD-TR-Mask --epochs 15
 ```
 
-This script will:
-- Process images from the CarDD_SOD dataset
-- Generate detailed annotations including:
-  - Damage class
-  - Confidence scores
-  - Bounding box coordinates
-  - Damage percentage
-  - Weighted damage scores
-- Save annotations in CSV format
-- Generate summary statistics in JSON format
+The model uses a modified ResNet18 architecture with a 4-channel input (RGB + mask) and is optimized for few-shot learning scenarios.
 
-The annotations are saved in the `cardd_sod` directory:
-- `cardd_sod_annotations.csv`: Detailed annotations for each detected damage
-- `annotation_summary.json`: Summary statistics including:
-  - Total number of processed images
-  - Total number of annotations
-  - Distribution of damage classes
-  - Average confidence scores
-  - Average damage percentages
+### Annotating Test Images with Model Assistance
 
-## Model Configuration
+Use the trained model to assist in annotating test images:
 
-The model uses the following configuration:
-- Architecture: Mask R-CNN
-- Backbone: ResNet-50 with Feature Pyramid Network (FPN)
-- Learning rate: 0.00025
-- Batch size: 2
-- Training iterations: 5000
-- Score threshold for detection: 0.5
-
-## Damage Analysis
-
-### Damage Percentage Calculation
-
-The damage percentage is calculated using a weighted approach that considers repair cost rather than just safety impact:
-
-1. Raw area percentage - The ratio of damaged pixels to the total car area
-2. Damage severity - Different types of damage have different repair cost weightings:
-   - Scratch: 0.3 (inexpensive paint touch-up)
-   - Dent: 0.8 (moderate panel work required)
-   - Crack: 1.5 (more significant repair needed)
-   - Glass shatter: 2.0 (glass replacement cost)
-   - Lamp broken: 1.5 (light assembly replacement)
-   - Tire flat: 0.6 (relatively inexpensive to replace tire)
-3. Component importance - Based on typical repair/replacement costs:
-   - Engine: 8.0 (most expensive to repair)
-   - Windshield: 2.5 (expensive glass component)
-   - Hood: 2.0 (large panel, expensive to replace)
-   - Headlight: 1.8 (modern headlights are expensive)
-   - Door: 1.5 (contains electronics, moderately expensive)
-   - Taillight: 1.2 (usually less expensive than headlights)
-   - Bumper: 1.2 (usually plastic, moderately priced)
-   - Fender: 1.0 (relatively simple panel replacement)
-   - Wheel: 1.0 (moderate cost to replace)
-
-The formula is:
-```
-weighted_damage = raw_percentage * damage_severity * component_importance
+```bash
+python annotate_test_set.py --model_path model_output/car_damage_model_*.pth --image_dir CarDD_release/CarDD_SOD/CarDD-TE/CarDD-TE-Image --mask_dir CarDD_release/CarDD_SOD/CarDD-TE/CarDD-TE-Mask --output_csv cardd_sod/test_annotations.csv
 ```
 
-Additional adjustments:
-- Special handling for tire flat damage (capped at 25% regardless of size)
-- Individual damage contributions are capped at 50%
-- Total damage is capped at 100%
-- Small damages (< 5% visible area) are scaled appropriately
-- Very small damages (< 0.5% visible area) are further reduced
+This tool shows model predictions for each image and allows manual correction.
 
-All parameters for damage calculation can be adjusted in the `damage_config.py` file.
+### Automated Test Set Annotation
+
+To automatically annotate test images using the trained model:
+
+```bash
+python train_fewshot_model.py --train_csv cardd_sod/manual_annotations.csv --auto_annotate_dir CarDD_release/CarDD_SOD/CarDD-TE/CarDD-TE-Image --auto_annotate_mask_dir CarDD_release/CarDD_SOD/CarDD-TE/CarDD-TE-Mask --output_csv cardd_sod/auto_annotations.csv --model_path model_output/car_damage_model_*.pth
+```
+
+### Generating Damage Reports
+
+Create a visual report of car damage analysis:
+
+```bash
+# Prepare deployment files
+python prepare_deployment.py
+
+# The deployment folder can be hosted using GitHub Pages, Netlify, or other static hosting services
+```
+
+## Model Architecture
+
+### Few-Shot Learning Approach
+
+The system uses a transfer learning approach with the following characteristics:
+- Base model: ResNet18 pretrained on ImageNet
+- Input modification: 4-channel input (RGB + segmentation mask)
+- Output layer: Multi-label classification with sigmoid activation
+- Loss function: Binary Cross-Entropy for multi-label classification
+- Optimization: Adam optimizer with reduced learning rate (0.0005)
+- Regularization: Weight decay to prevent overfitting on small datasets
+
+### Damage Assessment Methodology
+
+Damage severity is calculated by considering:
+1. The damage type (some types like glass shatter are inherently more severe)
+2. The affected area (calculated from the mask)
+3. The number of different damage types present
+4. The model's confidence in the damage classification
+
+## Project Structure
+
+```
+.
+├── train_fewshot_model.py      # Training script for few-shot learning
+├── annotate_cardd_sod.py       # Manual annotation tool
+├── annotate_test_set.py        # Test set annotation with model assistance
+├── prepare_deployment.py       # Script to prepare deployment files
+├── requirements.txt            # Project dependencies
+├── cardd_sod/                  # Directory for annotations
+│   └── manual_annotations.csv  # Manually created annotations
+├── model_output/               # Saved models and results
+└── deployment/                 # Deployment-ready files
+```
+
+## Web Report Interface
+
+The web-based report interface provides:
+- Interactive visualization of damage analysis
+- Side-by-side comparison of original and processed images
+- Damage type and severity information
+- Charts showing damage type distribution
+- Manual editing capability for damage types
+- Responsive design for desktop and mobile viewing
 
 ## Contributing
 
@@ -170,6 +181,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Acknowledgments
 
-- CarDD dataset creators
-- Detectron2 team at Facebook AI Research
-- PyTorch community 
+- CarDD_SOD dataset creators for providing the dataset
+- PyTorch team for the deep learning framework
+- OpenCV community for computer vision utilities 

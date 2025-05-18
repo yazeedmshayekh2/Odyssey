@@ -1,19 +1,26 @@
 torch
 torchvision
 opencv-python
-cython
-matplotlib
-pycocotools
 numpy
-tqdm
-pillow
-pyyaml
-flask
-flask-cors
-werkzeug
 pandas
+matplotlib
+scikit-learn
+tqdm
+Pillow
+Flask
+Flask-CORS
+werkzeug
+cython
+pycocotools
+pyyaml
+argparse
+json5
+scipy
+
+# For web UI and report generation
+bootstrap
 
 # Detectron2 needs to be installed separately with:
 # pip install detectron2 -f https://dl.fbaipublicfiles.com/detectron2/wheels/cu111/torch1.8/index.html
 # Or for the latest version:
-# pip install --no-build-isolation 'git+https://github.com/facebookresearch/detectron2.git'
+# pip install 'git+https://github.com/facebookresearch/detectron2.git'

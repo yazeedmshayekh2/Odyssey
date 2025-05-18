@@ -41,7 +41,6 @@ cardd_sod/
 CarDD_release/
 detectron2/
 node_modules/
-car-damage-ui/
 
 # Logs and databases
 *.log
