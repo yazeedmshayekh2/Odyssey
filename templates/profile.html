@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - Car Insurance System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+        }
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+        .card-header {
+            background-color: #007bff;
+            color: white;
+            border-radius: 10px 10px 0 0 !important;
+        }
+        .profile-header {
+            text-align: center;
+            padding: 20px;
+        }
+        .profile-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #007bff;
+            color: white;
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        .car-card {
+            transition: transform 0.2s;
+        }
+        .car-card:hover {
+            transform: translateY(-5px);
+        }
+        .document-thumbnail {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+        .badge-status {
+            font-size: 1rem;
+        }
+        .car-image {
+            height: 150px;
+            object-fit: cover;
+            width: 100%;
+            border-radius: 10px 10px 0 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation Bar -->
+        <nav class="navbar navbar-expand-lg navbar-light bg-light rounded mb-4">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="#">Car Insurance System</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav me-auto">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="{{ url_for('auth.profile') }}">Profile</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('car.register_car') }}">Register Car</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#">Report Damage</a>
+                        </li>
+                    </ul>
+                    <div class="d-flex">
+                        <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger">Logout</a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+        
+        {% if get_flashed_messages() %}
+        <div class="alert alert-success">
+            {{ get_flashed_messages()[0] }}
+        </div>
+        {% endif %}
+        
+        <div class="row">
+            <!-- User Profile -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0">Profile Information</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="profile-header">
+                            <div class="profile-avatar">
+                                {{ user.first_name[0] }}{{ user.last_name[0] }}
+                            </div>
+                            <h3>{{ user.first_name }} {{ user.last_name }}</h3>
+                            <p class="text-muted">{{ user.email }}</p>
+                            <p class="text-muted">Joined: {{ user.registration_date.strftime('%d %b %Y') }}</p>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <h5>Documents</h5>
+                            {% if user.documents_uploaded %}
+                            <div class="d-flex align-items-center mb-3">
+                                <span class="badge bg-success me-2">Uploaded</span>
+                                <span>Documents verified</span>
+                            </div>
+                            <div class="row mt-3">
+                                {% if user.license_image_path %}
+                                <div class="col-6">
+                                    <div class="card">
+                                        <img src="{{ url_for('static', filename=user.license_image_path) }}" alt="License Document" class="card-img-top">
+                                        <div class="card-body p-2">
+                                            <p class="card-text text-center mb-0">License</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                
+                                {% if user.car_image_path %}
+                                <div class="col-6">
+                                    <div class="card">
+                                        <img src="{{ url_for('static', filename=user.car_image_path) }}" alt="Car Image" class="card-img-top">
+                                        <div class="card-body p-2">
+                                            <p class="card-text text-center mb-0">Car</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% else %}
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i> 
+                                You need to upload your documents
+                                <a href="{{ url_for('auth.upload_documents') }}" class="btn btn-sm btn-warning mt-2 d-block">Upload now</a>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Car Information -->
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0">My Cars</h4>
+                        <a href="{{ url_for('car.register_car') }}" class="btn btn-light">
+                            <i class="fas fa-plus me-2"></i>Register New Car
+                        </a>
+                    </div>
+                    <div class="card-body">
+                        {% if cars %}
+                        <div class="row">
+                            {% for car in cars %}
+                            <div class="col-md-6 mb-4">
+                                <div class="card car-card h-100">
+                                    {% if car.images and car.images|length > 0 %}
+                                    <img src="{{ url_for('static', filename=car.images[0]) }}" class="car-image" alt="{{ car.make }} {{ car.model }}">
+                                    {% else %}
+                                    <div class="car-image bg-light d-flex align-items-center justify-content-center">
+                                        <i class="fas fa-car fa-3x text-muted"></i>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    <div class="card-body">
+                                        <h5 class="card-title">{{ car.make }} {{ car.model }}</h5>
+                                        <p class="card-text mb-1">Year: {{ car.year }}</p>
+                                        <p class="card-text mb-1">Color: {{ car.color }}</p>
+                                        <p class="card-text mb-3">License: {{ car.license_plate }}</p>
+                                        
+                                        <div class="d-grid gap-2">
+                                            <a href="{{ url_for('car.view_car', car_id=car.id) }}" class="btn btn-outline-primary">View Details</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="text-center py-5">
+                            <div class="mb-3">
+                                <i class="fas fa-car fa-4x text-muted"></i>
+                            </div>
+                            <h5>No cars registered yet</h5>
+                            <p class="text-muted">Register your first car to start using our damage detection system.</p>
+                            <a href="{{ url_for('car.register_car') }}" class="btn btn-primary">Register Car</a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Recent Damage Reports Section -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h4 class="mb-0">Recent Damage Reports</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="text-center py-4">
+                            <i class="fas fa-clipboard-check fa-3x text-muted mb-3"></i>
+                            <p>No damage reports available yet.</p>
+                            <a href="#" class="btn btn-outline-primary">Report New Damage</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 

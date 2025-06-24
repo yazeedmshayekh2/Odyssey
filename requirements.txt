@@ -16,11 +16,15 @@ pyyaml
 argparse
 json5
 scipy
-
-# For web UI and report generation
-bootstrap
+pymongo
+flask-login
+flask-bcrypt
+python-dotenv
+jwt
+PyJWT
+requests
 
 # Detectron2 needs to be installed separately with:
 # pip install detectron2 -f https://dl.fbaipublicfiles.com/detectron2/wheels/cu111/torch1.8/index.html
 # Or for the latest version:
-# pip install 'git+https://github.com/facebookresearch/detectron2.git'
+# pip install --no-isolation 'git+https://github.com/facebookresearch/detectron2.git'

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register Your Car - Car Damage Detection System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+        }
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+        .card-header {
+            background-color: #007bff;
+            color: white;
+            border-radius: 10px 10px 0 0 !important;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+        .image-preview {
+            width: 100%;
+            height: 200px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f5f5f5;
+            overflow: hidden;
+        }
+        .image-preview img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        .insurance-parts {
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-10">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="mb-0">Register Your Car</h3>
+                    </div>
+                    <div class="card-body">
+                        <p class="lead">
+                            Upload reference images of your car in good condition. These will serve as a baseline for future damage assessments.
+                        </p>
+                        
+                        {% if get_flashed_messages() %}
+                        <div class="alert alert-danger">
+                            {{ get_flashed_messages()[0] }}
+                        </div>
+                        {% endif %}
+                        
+                        <form method="POST" enctype="multipart/form-data">
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <h4>Car Information</h4>
+                                    
+                                    <div class="mb-3">
+                                        <label for="make" class="form-label">Make</label>
+                                        <input type="text" class="form-control" id="make" name="make" required>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="model" class="form-label">Model</label>
+                                        <input type="text" class="form-control" id="model" name="model" required>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="year" class="form-label">Year</label>
+                                        <input type="number" class="form-control" id="year" name="year" min="1900" max="2099" required>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="color" class="form-label">Color</label>
+                                        <input type="text" class="form-control" id="color" name="color" required>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="license_plate" class="form-label">License Plate</label>
+                                        <input type="text" class="form-control" id="license_plate" name="license_plate" required>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <h4>Insurance Coverage</h4>
+                                    <p>Select the parts of your car that are covered by insurance:</p>
+                                    
+                                    <div class="insurance-parts">
+                                        {% for part in car_parts %}
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="insured_parts" value="{{ part }}" id="part{{ loop.index }}">
+                                            <label class="form-check-label" for="part{{ loop.index }}">
+                                                {{ part }}
+                                            </label>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    
+                                    <div class="mt-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="select_all">
+                                            <label class="form-check-label" for="select_all">
+                                                <strong>Select All Parts</strong>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <h4>Reference Images</h4>
+                            <p>Upload clear images of your car from different angles. These will be used as reference points for damage assessment.</p>
+                            
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="front_image" class="form-label">Front View</label>
+                                        <input type="file" class="form-control" id="front_image" name="front_image" accept="image/*" required onchange="previewImage(this, 'front_preview')">
+                                        <div class="image-preview" id="front_preview">
+                                            <span class="text-muted">Image preview</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="side_image" class="form-label">Side View</label>
+                                        <input type="file" class="form-control" id="side_image" name="side_image" accept="image/*" required onchange="previewImage(this, 'side_preview')">
+                                        <div class="image-preview" id="side_preview">
+                                            <span class="text-muted">Image preview</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="rear_image" class="form-label">Rear View</label>
+                                        <input type="file" class="form-control" id="rear_image" name="rear_image" accept="image/*" required onchange="previewImage(this, 'rear_preview')">
+                                        <div class="image-preview" id="rear_preview">
+                                            <span class="text-muted">Image preview</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="alert alert-info mt-3">
+                                <h5>Important:</h5>
+                                <ul>
+                                    <li>Photos should be taken in good lighting conditions</li>
+                                    <li>Make sure the entire car is visible in the image</li>
+                                    <li>Avoid shadows or reflections that could be mistaken for damage</li>
+                                    <li>Clean your car before taking reference photos</li>
+                                    <li>Take photos from consistent angles for better comparison</li>
+                                </ul>
+                            </div>
+                            
+                            <div class="d-grid gap-2 mt-4">
+                                <button type="submit" class="btn btn-primary btn-lg">Register Car</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Function to preview images before upload
+        function previewImage(input, previewId) {
+            const preview = document.getElementById(previewId);
+            preview.innerHTML = '';
+            
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    preview.appendChild(img);
+                }
+                
+                reader.readAsDataURL(input.files[0]);
+            } else {
+                preview.innerHTML = '<span class="text-muted">Image preview</span>';
+            }
+        }
+        
+        // Select all insured parts checkbox
+        document.getElementById('select_all').addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('input[name="insured_parts"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+        });
+    </script>
+</body>
+</html> 

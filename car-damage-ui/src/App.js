@@ -2,18 +2,29 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import styled from 'styled-components';
 import './App.css';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
+
+// Import components
+import Header from './components/layout/Header';
+import Dashboard from './components/layout/Dashboard';
+import Login from './components/auth/Login';
+import Register from './components/auth/Register';
+import DocumentUpload from './components/auth/DocumentUpload';
+import CarList from './components/cars/CarList';
+import CarForm from './components/cars/CarForm';
+import DamageDetection from './components/cars/DamageDetection';
+import DamageReport from './components/damage/DamageReport';
+import DamageReportsList from './components/damage/DamageReportsList';
+import NewAccidentReport from './components/damage/NewAccidentReport';
+
+// Original damage detection UI
+import OriginalApp from './OriginalApp';
 
 // Styled Components
 const AppContainer = styled.div`
   min-height: 100vh;
   background-color: #f8f9fa;
-`;
-
-const Header = styled.header`
-  background-color: #1d3557;
-  color: white;
-  padding: 1.5rem 0;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 `;
 
 const HeaderContent = styled.div`
@@ -34,11 +45,8 @@ const Subtitle = styled.p`
   margin-top: 0.5rem;
 `;
 
-const Main = styled.main`
-  width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem 1rem;
+const MainContent = styled.main`
+  min-height: calc(100vh - 64px);
 `;
 
 const Card = styled.div`
@@ -254,216 +262,142 @@ const UploadIcon = () => (
   </svg>
 );
 
+// PrivateRoute component to protect routes that require authentication
+const PrivateRoute = ({ children }) => {
+  const { isAuthenticated, loading } = useAuth();
+  
+  // If auth is still loading, don't render anything yet
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+  
+  // If not authenticated, redirect to login
+  if (!isAuthenticated) {
+    return <Navigate to="/login" />;
+  }
+  
+  // If authenticated, render the protected component
+  return children;
+};
+
 function App() {
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [preview, setPreview] = useState(null);
-  const [result, setResult] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  // Handle file selection
-  const handleFileSelect = (e) => {
-    setError(null);
-    const file = e.target.files[0];
-    if (file) {
-      setSelectedFile(file);
-      // Create preview
-      const reader = new FileReader();
-      reader.onload = () => {
-        setPreview(reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  // Handle form submission
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!selectedFile) {
-      setError('Please select an image to upload');
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-    
-    const formData = new FormData();
-    formData.append('image', selectedFile);
-    
-    try {
-      const response = await axios.post('http://localhost:5000/api/detect-damage', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-      
-      setResult(response.data);
-    } catch (error) {
-      console.error('Error during damage detection:', error);
-      setError(error.response?.data?.message || 'Error processing the image. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Handle reset
-  const handleReset = () => {
-    setSelectedFile(null);
-    setPreview(null);
-    setResult(null);
-    setError(null);
-  };
-
   return (
-    <AppContainer>
-      <Header>
-        <HeaderContent>
-          <Title>
-            <span style={{ marginRight: '0.5rem' }}>🚗</span> 
-            Car Damage Detection
-          </Title>
-          <Subtitle>Upload a car image to detect and analyze damaged areas</Subtitle>
-        </HeaderContent>
-      </Header>
-
-      <Main>
-        {/* Upload Section */}
-        <Card>
-          <SectionTitle>Upload Car Image</SectionTitle>
-          
-          <form onSubmit={handleSubmit}>
-            <FormGroup>
-              <Label>Select an image</Label>
-              <FileInputWrapper>
-                <FileInputButton>
-                  <span>Choose File</span>
-                  <input 
-                    type="file" 
-                    style={{ display: 'none' }} 
-                    accept="image/*" 
-                    onChange={handleFileSelect} 
-                  />
-                </FileInputButton>
-                <FileInputText>
-                  {selectedFile ? selectedFile.name : 'No file chosen'}
-                </FileInputText>
-              </FileInputWrapper>
-            </FormGroup>
-
-            {preview && (
-              <PreviewContainer>
-                <Label>Preview:</Label>
-                <div style={{ maxWidth: '400px' }}>
-                  <PreviewImage 
-                    src={preview} 
-                    alt="Preview" 
-                  />
-                </div>
-              </PreviewContainer>
-            )}
-
-            {error && (
-              <ErrorMessage>
-                <p>{error}</p>
-              </ErrorMessage>
-            )}
-
-            <ButtonGroup>
-              <PrimaryButton 
-                type="submit" 
-                disabled={isLoading || !selectedFile}
-              >
-                {isLoading ? 'Processing...' : 'Detect Damage'}
-              </PrimaryButton>
-
-              {(selectedFile || result) && (
-                <SecondaryButton
-                  type="button"
-                  onClick={handleReset}
-                >
-                  Reset
-                </SecondaryButton>
-              )}
-            </ButtonGroup>
-          </form>
-        </Card>
-
-        {/* Results Section */}
-        {result && (
-          <Card>
-            <SectionTitle>Damage Analysis Results</SectionTitle>
-            
-            <ResultsGrid>
-              <ResultColumn>
-                <ResultTitle>Processed Image</ResultTitle>
-                <ImageBorder>
-                  <img 
-                    src={result.image_data} 
-                    alt="Processed" 
-                    style={{ width: '100%', height: 'auto' }}
-                  />
-                </ImageBorder>
-              </ResultColumn>
+    <AuthProvider>
+      <Router>
+        <AppContainer>
+          <Header />
+          <MainContent>
+            <Routes>
+              {/* Public routes */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
               
-              <ResultColumn>
-                <ResultCard light marginBottom>
-                  <ResultTitle>Damage Information</ResultTitle>
-                  
-                  <div style={{ marginBottom: '1rem' }}>
-                    <DamagePercentage>
-                      {result.damage_percentage.toFixed(2)}%
-                    </DamagePercentage>
-                    <DamageLabel>Damaged Area</DamageLabel>
-                  </div>
-                  
-                  <div>
-                    <DetectedIssuesTitle>Detected Issues:</DetectedIssuesTitle>
-                    <IssuesList>
-                      {result.damage_classes.map((item, index) => (
-                        <IssueItem key={index}>
-                          <IssueDot />
-                          <IssueText>{item.class}</IssueText>
-                          <IssueConfidence>
-                            (Confidence: {(item.confidence * 100).toFixed(1)}%)
-                          </IssueConfidence>
-                        </IssueItem>
-                      ))}
-                    </IssuesList>
-                  </div>
-                </ResultCard>
-
-                <ResultCard>
-                  <ResultTitle>Repair Recommendation</ResultTitle>
-                  <p style={{ color: '#6b7280' }}>
-                    Based on the damage detection, this vehicle requires professional repair services.
-                    {result.damage_percentage > 20 
-                      ? ' The extensive damage suggests significant repair work is needed.' 
-                      : ' Minor repairs should be sufficient to address the damage.'}
-                  </p>
-                </ResultCard>
-              </ResultColumn>
-            </ResultsGrid>
-          </Card>
-        )}
-
-        {/* Upload placeholder when no image selected */}
-        {!preview && !result && (
-          <UploadPlaceholder>
-            <PlaceholderContent>
-              <UploadIcon />
-              <p style={{ marginTop: '0.5rem' }}>Select a car image to start damage detection</p>
-            </PlaceholderContent>
-          </UploadPlaceholder>
-        )}
-      </Main>
-
-      <Footer>
-        <FooterContent>
-          <p>&copy; {new Date().getFullYear()} Car Damage Detection System</p>
-        </FooterContent>
-      </Footer>
-    </AppContainer>
+              {/* Protected routes */}
+              <Route 
+                path="/dashboard" 
+                element={
+                  <PrivateRoute>
+                    <Dashboard />
+                  </PrivateRoute>
+                } 
+              />
+              
+              <Route 
+                path="/documents" 
+                element={
+                  <PrivateRoute>
+                    <DocumentUpload />
+                  </PrivateRoute>
+                } 
+              />
+              
+              <Route 
+                path="/cars" 
+                element={
+                  <PrivateRoute>
+                    <CarList />
+                  </PrivateRoute>
+                } 
+              />
+              
+              <Route 
+                path="/cars/add" 
+                element={
+                  <PrivateRoute>
+                    <CarForm />
+                  </PrivateRoute>
+                } 
+              />
+              
+              <Route 
+                path="/cars/:id" 
+                element={
+                  <PrivateRoute>
+                    <CarForm viewMode={true} />
+                  </PrivateRoute>
+                } 
+              />
+              
+              <Route 
+                path="/cars/:id/edit" 
+                element={
+                  <PrivateRoute>
+                    <CarForm editMode={true} />
+                  </PrivateRoute>
+                } 
+              />
+              
+              <Route 
+                path="/damage-detection" 
+                element={
+                  <PrivateRoute>
+                    <DamageDetection />
+                  </PrivateRoute>
+                } 
+              />
+              
+              <Route 
+                path="/damage-reports" 
+                element={
+                  <PrivateRoute>
+                    <DamageReportsList />
+                  </PrivateRoute>
+                } 
+              />
+              
+              <Route 
+                path="/damage-reports/:reportId" 
+                element={
+                  <PrivateRoute>
+                    <DamageReport />
+                  </PrivateRoute>
+                } 
+              />
+              
+              <Route 
+                path="/accident-report" 
+                element={
+                  <PrivateRoute>
+                    <NewAccidentReport />
+                  </PrivateRoute>
+                } 
+              />
+              
+              {/* Redirect root to appropriate place based on auth status */}
+              <Route 
+                path="/" 
+                element={
+                  <Navigate to="/dashboard" />
+                } 
+              />
+              
+              {/* Original damage detection UI as a fallback */}
+              <Route path="/original" element={<OriginalApp />} />
+            </Routes>
+          </MainContent>
+        </AppContainer>
+      </Router>
+    </AuthProvider>
   );
 }
 

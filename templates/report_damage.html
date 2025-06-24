@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report Car Damage - Car Damage Detection System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+        }
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+        .card-header {
+            background-color: #007bff;
+            color: white;
+            border-radius: 10px 10px 0 0 !important;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+        .image-preview {
+            width: 100%;
+            height: 200px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f5f5f5;
+            overflow: hidden;
+        }
+        .image-preview img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        .reference-images {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 1rem;
+        }
+        .reference-image {
+            width: 150px;
+            height: 100px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .reference-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .affected-parts {
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-10">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="mb-0">Report Car Damage</h3>
+                    </div>
+                    <div class="card-body">
+                        <p class="lead">
+                            Upload images of the damage to your car. The system will compare these with your reference images to generate a detailed damage report.
+                        </p>
+                        
+                        {% if get_flashed_messages() %}
+                        <div class="alert alert-danger">
+                            {{ get_flashed_messages()[0] }}
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Vehicle Information -->
+                        <div class="mb-4">
+                            <h4>Your Vehicle</h4>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Make:</strong> {{ user.car.make }}</p>
+                                    <p><strong>Model:</strong> {{ user.car.model }}</p>
+                                    <p><strong>Year:</strong> {{ user.car.year }}</p>
+                                    <p><strong>Color:</strong> {{ user.car.color }}</p>
+                                    <p><strong>License Plate:</strong> {{ user.car.license_plate }}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <h5>Reference Images:</h5>
+                                    <div class="reference-images">
+                                        {% for image in user.car.images %}
+                                        <div class="reference-image">
+                                            <img src="/{{ image.path }}" alt="Reference {{ image.view }}">
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <form method="POST" enctype="multipart/form-data">
+                            <!-- Damage Image Upload -->
+                            <div class="mb-4">
+                                <h4>Upload Damage Photo</h4>
+                                <div class="mb-3">
+                                    <label for="damage_image" class="form-label">Damage Image</label>
+                                    <input type="file" class="form-control" id="damage_image" name="damage_image" accept="image/*" required onchange="previewImage(this, 'damage_preview')">
+                                    <div class="image-preview" id="damage_preview">
+                                        <span class="text-muted">Image preview</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Damage Details -->
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <h4>Damage Types</h4>
+                                    <p>Select all types of damage visible in the image:</p>
+                                    
+                                    <div class="mb-3">
+                                        {% for damage_type in damage_types %}
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="damage_types" value="{{ damage_type }}" id="damage{{ loop.index }}">
+                                            <label class="form-check-label" for="damage{{ loop.index }}">
+                                                {{ damage_type }}
+                                            </label>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="severity" class="form-label">Damage Severity</label>
+                                        <select class="form-select" id="severity" name="severity" required>
+                                            <option value="Low">Low - Minor damage, cosmetic only</option>
+                                            <option value="Medium" selected>Medium - Noticeable damage requiring repair</option>
+                                            <option value="High">High - Significant damage, affects functionality</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <h4>Affected Parts</h4>
+                                    <p>Select all car parts that are damaged:</p>
+                                    
+                                    <div class="affected-parts">
+                                        {% for part in car_parts %}
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="affected_parts" value="{{ part }}" id="part{{ loop.index }}">
+                                            <label class="form-check-label" for="part{{ loop.index }}">
+                                                {{ part }}
+                                                {% if part in user.car.insured_parts %}
+                                                <span class="badge bg-success">Insured</span>
+                                                {% endif %}
+                                            </label>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Damage Description -->
+                            <div class="mb-4">
+                                <h4>Damage Description</h4>
+                                <div class="mb-3">
+                                    <label for="damage_description" class="form-label">Describe how the damage occurred:</label>
+                                    <textarea class="form-control" id="damage_description" name="damage_description" rows="4" required></textarea>
+                                </div>
+                            </div>
+                            
+                            <div class="alert alert-info">
+                                <h5>Tips for better damage detection:</h5>
+                                <ul>
+                                    <li>Take photos in good lighting</li>
+                                    <li>Capture the damage from the same angle as the reference images</li>
+                                    <li>Include the entire damaged area in the frame</li>
+                                    <li>Clean the area of dirt or debris that could be confused with damage</li>
+                                </ul>
+                            </div>
+                            
+                            <div class="d-grid gap-2 mt-4">
+                                <button type="submit" class="btn btn-primary btn-lg">Submit Damage Report</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Function to preview images before upload
+        function previewImage(input, previewId) {
+            const preview = document.getElementById(previewId);
+            preview.innerHTML = '';
+            
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    preview.appendChild(img);
+                }
+                
+                reader.readAsDataURL(input.files[0]);
+            } else {
+                preview.innerHTML = '<span class="text-muted">Image preview</span>';
+            }
+        }
+    </script>
+</body>
+</html> 

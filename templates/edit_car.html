@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit {{ car.make }} {{ car.model }} - Car Insurance System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+        }
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+        .card-header {
+            background-color: #007bff;
+            color: white;
+            border-radius: 10px 10px 0 0 !important;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+        .image-preview {
+            width: 100%;
+            height: 150px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f5f5f5;
+            overflow: hidden;
+        }
+        .image-preview img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        .insurance-parts {
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .existing-images {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .existing-image {
+            width: 120px;
+            height: 90px;
+            position: relative;
+            border-radius: 5px;
+            overflow: hidden;
+            border: 2px solid #dee2e6;
+        }
+        .existing-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation Bar -->
+        <nav class="navbar navbar-expand-lg navbar-light bg-light rounded mb-4">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="#">Car Insurance System</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav me-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('auth.profile') }}">Profile</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('car.register_car') }}">Register Car</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#">Report Damage</a>
+                        </li>
+                    </ul>
+                    <div class="d-flex">
+                        <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger">Logout</a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+        
+        {% if get_flashed_messages() %}
+        <div class="alert alert-danger">
+            {{ get_flashed_messages()[0] }}
+        </div>
+        {% endif %}
+        
+        <div class="row">
+            <div class="col-12 mb-4">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{{ url_for('auth.profile') }}">Profile</a></li>
+                        <li class="breadcrumb-item"><a href="{{ url_for('car.view_car', car_id=car.id) }}">{{ car.make }} {{ car.model }}</a></li>
+                        <li class="breadcrumb-item active" aria-current="page">Edit</li>
+                    </ol>
+                </nav>
+            </div>
+        </div>
+        
+        <div class="row justify-content-center">
+            <div class="col-md-10">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="mb-0">Edit Car: {{ car.make }} {{ car.model }}</h3>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST" action="{{ url_for('car.edit_car', car_id=car.id) }}" enctype="multipart/form-data">
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <h4>Car Information</h4>
+                                    
+                                    <div class="mb-3">
+                                        <label for="make" class="form-label">Make</label>
+                                        <input type="text" class="form-control" id="make" name="make" value="{{ car.make }}" required>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="model" class="form-label">Model</label>
+                                        <input type="text" class="form-control" id="model" name="model" value="{{ car.model }}" required>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="year" class="form-label">Year</label>
+                                        <input type="number" class="form-control" id="year" name="year" min="1900" max="2099" value="{{ car.year }}" required>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="color" class="form-label">Color</label>
+                                        <input type="text" class="form-control" id="color" name="color" value="{{ car.color }}" required>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="license_plate" class="form-label">License Plate</label>
+                                        <input type="text" class="form-control" id="license_plate" name="license_plate" value="{{ car.license_plate }}" required>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <h4>Insurance Coverage</h4>
+                                    <p>Select the parts of your car that are covered by insurance:</p>
+                                    
+                                    <div class="insurance-parts">
+                                        {% for part in car_parts %}
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="insured_parts" value="{{ part }}" id="part{{ loop.index }}" {% if part in car.insured_parts %}checked{% endif %}>
+                                            <label class="form-check-label" for="part{{ loop.index }}">
+                                                {{ part }}
+                                            </label>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    
+                                    <div class="mt-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="select_all">
+                                            <label class="form-check-label" for="select_all">
+                                                <strong>Select All Parts</strong>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <h4>Car Images</h4>
+                            <p>Current images:</p>
+                            
+                            <div class="existing-images mb-4">
+                                {% if car.images and car.images|length > 0 %}
+                                    {% for image in car.images %}
+                                    <div class="existing-image">
+                                        <img src="{{ url_for('static', filename=image) }}" alt="Car Image">
+                                    </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <p class="text-muted">No images uploaded yet.</p>
+                                {% endif %}
+                            </div>
+                            
+                            <p>Add more images:</p>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="front_image" class="form-label">Front View (Optional)</label>
+                                        <input type="file" class="form-control" id="front_image" name="front_image" accept="image/*" onchange="previewImage(this, 'front_preview')">
+                                        <div class="image-preview" id="front_preview">
+                                            <span class="text-muted">Image preview</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="side_image" class="form-label">Side View (Optional)</label>
+                                        <input type="file" class="form-control" id="side_image" name="side_image" accept="image/*" onchange="previewImage(this, 'side_preview')">
+                                        <div class="image-preview" id="side_preview">
+                                            <span class="text-muted">Image preview</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="rear_image" class="form-label">Rear View (Optional)</label>
+                                        <input type="file" class="form-control" id="rear_image" name="rear_image" accept="image/*" onchange="previewImage(this, 'rear_preview')">
+                                        <div class="image-preview" id="rear_preview">
+                                            <span class="text-muted">Image preview</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="d-flex gap-2 mt-4">
+                                <button type="submit" class="btn btn-primary btn-lg">Save Changes</button>
+                                <a href="{{ url_for('car.view_car', car_id=car.id) }}" class="btn btn-outline-secondary btn-lg">Cancel</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Function to preview images before upload
+        function previewImage(input, previewId) {
+            const preview = document.getElementById(previewId);
+            preview.innerHTML = '';
+            
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    preview.appendChild(img);
+                }
+                
+                reader.readAsDataURL(input.files[0]);
+            } else {
+                preview.innerHTML = '<span class="text-muted">Image preview</span>';
+            }
+        }
+        
+        // Select all insured parts checkbox
+        document.getElementById('select_all').addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('input[name="insured_parts"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+        });
+    </script>
+</body>
+</html> 

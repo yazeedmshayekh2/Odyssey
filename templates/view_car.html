@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ car.make }} {{ car.model }} - Car Insurance System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+        }
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+        .card-header {
+            background-color: #007bff;
+            color: white;
+            border-radius: 10px 10px 0 0 !important;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+        .car-image-gallery {
+            display: flex;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            gap: 10px;
+            padding: 10px 0;
+        }
+        .car-image-item {
+            flex: 0 0 auto;
+            width: 200px;
+            height: 150px;
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid #dee2e6;
+        }
+        .car-image-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .car-image-item:hover {
+            border-color: #007bff;
+        }
+        .table-info th {
+            width: 30%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation Bar -->
+        <nav class="navbar navbar-expand-lg navbar-light bg-light rounded mb-4">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="#">Car Insurance System</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav me-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('auth.profile') }}">Profile</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('car.register_car') }}">Register Car</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#">Report Damage</a>
+                        </li>
+                    </ul>
+                    <div class="d-flex">
+                        <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger">Logout</a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+        
+        {% if get_flashed_messages() %}
+        <div class="alert alert-success">
+            {{ get_flashed_messages()[0] }}
+        </div>
+        {% endif %}
+        
+        <div class="row">
+            <div class="col-12 mb-4">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{{ url_for('auth.profile') }}">Profile</a></li>
+                        <li class="breadcrumb-item active" aria-current="page">{{ car.make }} {{ car.model }}</li>
+                    </ol>
+                </nav>
+            </div>
+        </div>
+        
+        <div class="row">
+            <!-- Car Information -->
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0">{{ car.make }} {{ car.model }}</h4>
+                        <a href="{{ url_for('car.edit_car', car_id=car.id) }}" class="btn btn-light">
+                            <i class="fas fa-edit me-2"></i>Edit Car
+                        </a>
+                    </div>
+                    <div class="card-body">
+                        <!-- Car Images Gallery -->
+                        <h5>Car Images</h5>
+                        {% if car.images and car.images|length > 0 %}
+                        <div class="car-image-gallery mb-4">
+                            {% for image in car.images %}
+                            <div class="car-image-item">
+                                <img src="{{ url_for('static', filename=image) }}" alt="Car Image">
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="alert alert-info mb-4">
+                            <i class="fas fa-info-circle me-2"></i>
+                            No images uploaded for this car yet.
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Car Details -->
+                        <h5>Car Details</h5>
+                        <table class="table table-striped table-info">
+                            <tbody>
+                                <tr>
+                                    <th>Make</th>
+                                    <td>{{ car.make }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Model</th>
+                                    <td>{{ car.model }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Year</th>
+                                    <td>{{ car.year }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Color</th>
+                                    <td>{{ car.color }}</td>
+                                </tr>
+                                <tr>
+                                    <th>License Plate</th>
+                                    <td>{{ car.license_plate }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Registration Date</th>
+                                    <td>{{ car.registration_date.strftime('%d %b %Y') }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Insurance Info & Actions -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0">Insurance Coverage</h4>
+                    </div>
+                    <div class="card-body">
+                        {% if car.insured_parts and car.insured_parts|length > 0 %}
+                        <div class="mb-4">
+                            <h5>Covered Parts:</h5>
+                            <ul class="list-group">
+                                {% for part in car.insured_parts %}
+                                <li class="list-group-item">{{ part }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% else %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            No parts selected for insurance coverage.
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h4 class="mb-0">Actions</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-3">
+                            <a href="#" class="btn btn-primary">
+                                <i class="fas fa-car-crash me-2"></i>Report Damage
+                            </a>
+                            <a href="#" class="btn btn-outline-primary">
+                                <i class="fas fa-history me-2"></i>View Damage History
+                            </a>
+                            <a href="{{ url_for('car.edit_car', car_id=car.id) }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-edit me-2"></i>Edit Car Details
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 
