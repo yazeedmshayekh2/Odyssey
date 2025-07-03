@@ -1,0 +1,37 @@
+# Large data directories
+600-800/
+prepared_dataset/
+static/visualizations/
+uploads/
+wandb/
+
+# Model files (these should be downloaded during container startup)
+*.pth
+*.pt
+
+# Development files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.env
+*.log
+
+# Database
+*.db
+
+# IDE
+.idea/
+.vscode/
+
+# Git
+.git/
+.gitignore
+
+# Docker
+Dockerfile
+.dockerignore 
+

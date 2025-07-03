@@ -1,0 +1,2034 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Car Verification System - InceptionV3 AI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .ai-badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 16px;
+            border-radius: 25px;
+            display: inline-block;
+            margin-top: 10px;
+            font-size: 0.9em;
+            font-weight: 600;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .tech-stack {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            text-align: center;
+        }
+        
+        .tech-stack h3 {
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+        
+        .tech-tags {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .tech-tag {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: 500;
+        }
+        
+        .tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            background: #f8f9fa;
+            border: none;
+            font-size: 16px;
+            font-weight: 600;
+            color: #495057;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+        }
+        
+        .tab.active {
+            background: white;
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+        
+        .tab:hover {
+            background: #e9ecef;
+        }
+        
+        .tab-content {
+            display: none;
+            padding: 40px;
+            background: white;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #343a40;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .file-upload-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .file-upload-item {
+            border: 2px dashed #dee2e6;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            background: #fafbfc;
+            position: relative;
+        }
+        
+        .file-upload-item:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+        
+        .file-upload-item.has-file {
+            border-color: #28a745;
+            background: #f8fff9;
+            border-style: solid;
+        }
+        
+        .file-upload-item h4 {
+            margin-bottom: 15px;
+            color: #495057;
+            font-size: 18px;
+            text-transform: capitalize;
+        }
+        
+        .file-input {
+            margin-bottom: 10px;
+        }
+        
+        .image-preview {
+            max-width: 100%;
+            max-height: 150px;
+            border-radius: 10px;
+            margin-top: 10px;
+            border: 2px solid #28a745;
+        }
+        
+        .file-info {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin-top: 20px;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-full {
+            width: 100%;
+        }
+        
+        .alert {
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-weight: 500;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .alert-info {
+            background: #cce7ff;
+            color: #004085;
+            border: 1px solid #99d5ff;
+        }
+        
+        .verification-result {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 20px;
+            border: 2px solid #e9ecef;
+        }
+        
+        .result-header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        
+        .result-overall {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        
+        .result-overall.success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        }
+        
+        .result-overall.warning {
+            background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+            color: #212529;
+        }
+        
+        .result-overall.danger {
+            background: linear-gradient(135deg, #dc3545 0%, #e83e8c 100%);
+        }
+        
+        .ai-detection-info {
+            background: linear-gradient(135deg, #17a2b8 0%, #6f42c1 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .ai-detection-info h4 {
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+        
+        .detection-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .metric {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .metric-label {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+        
+        .metric-value {
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: 2px;
+        }
+        
+        .sides-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .side-result {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            border: 2px solid #e9ecef;
+        }
+        
+        .side-result.match {
+            border-color: #28a745;
+            background: #f8fff9;
+        }
+        
+        .side-result.no-match {
+            border-color: #dc3545;
+            background: #fff5f5;
+        }
+        
+        .side-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            text-transform: capitalize;
+        }
+        
+        .confidence-badge {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .confidence-high {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .confidence-medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .confidence-low {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .confidence-very-high {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        .similarity-score {
+            font-size: 24px;
+            font-weight: 700;
+            margin: 10px 0;
+        }
+        
+        .car-references {
+            margin-top: 30px;
+        }
+        
+        .reference-item {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 2px solid #e9ecef;
+        }
+        
+        .reference-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .reference-info h3 {
+            color: #495057;
+            margin-bottom: 5px;
+        }
+        
+        .reference-date {
+            color: #6c757d;
+            font-size: 14px;
+        }
+        
+        .reference-images {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        
+        .reference-image {
+            text-align: center;
+        }
+        
+        .reference-image img {
+            max-width: 100%;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 10px;
+            border: 2px solid #dee2e6;
+        }
+        
+        .reference-image p {
+            margin-top: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: capitalize;
+            color: #495057;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+        
+        .empty-state h3 {
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+        
+        .processing-indicator {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            color: #667eea;
+            font-weight: 600;
+        }
+        
+        /* Test Cases Styles */
+        .test-case-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .download-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: #495057;
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+            font-weight: 500;
+            padding: 8px 12px;
+            border-radius: 6px;
+            background: rgba(102, 126, 234, 0.05);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            transition: all 0.2s ease;
+        }
+        
+        .checkbox-container:hover {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+        
+        .checkbox-container input[type="checkbox"] {
+            margin: 0;
+            transform: scale(1.2);
+            accent-color: #667eea;
+        }
+        
+        .download-controls .btn {
+            min-width: 200px;
+            height: 44px;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .delete-test-case-btn {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(220, 53, 69, 0.3);
+        }
+        
+        .delete-test-case-btn:hover {
+            background: #c82333;
+            transform: translateY(-50%) scale(1.1);
+            box-shadow: 0 4px 8px rgba(220, 53, 69, 0.4);
+        }
+        
+        .delete-test-case-btn:active {
+            transform: translateY(-50%) scale(0.95);
+        }
+        
+        .test-cases-container {
+            max-height: 600px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            background: white;
+        }
+        
+        .test-case-item {
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            align-items: center;
+            transition: background-color 0.2s ease;
+            position: relative;
+        }
+        
+        .test-case-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .test-case-item.selected {
+            background-color: #e3f2fd;
+            border-left: 4px solid #2196f3;
+        }
+        
+        .test-case-checkbox {
+            margin-right: 15px;
+            transform: scale(1.2);
+        }
+        
+        .test-case-info {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .test-case-field {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .test-case-label {
+            font-size: 12px;
+            color: #6c757d;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        
+        .test-case-value {
+            font-size: 14px;
+            color: #495057;
+            font-weight: 500;
+        }
+        
+        .test-case-status {
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .status-match {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-no-match {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .test-case-similarity {
+            font-size: 16px;
+            font-weight: 700;
+        }
+        
+        .similarity-high {
+            color: #28a745;
+        }
+        
+        .similarity-medium {
+            color: #ffc107;
+        }
+        
+        .similarity-low {
+            color: #dc3545;
+        }
+        
+        .loading-message {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+            font-style: italic;
+        }
+        
+        .test-cases-header {
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+            font-weight: 600;
+            color: #495057;
+            display: grid;
+            grid-template-columns: 40px 1fr 1fr 1fr 1fr 1fr;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .download-status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            display: none;
+        }
+        
+        .download-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .download-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        /* Filter Controls Styles */
+        .filter-controls {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .filter-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .filter-row:last-child {
+            margin-bottom: 0;
+        }
+        
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .filter-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 5px;
+        }
+        
+        .filter-group input,
+        .filter-group select {
+            padding: 8px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.2s ease;
+        }
+        
+        .filter-group input:focus,
+        .filter-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+        }
+        
+        .filter-group input[type="range"] {
+            margin-bottom: 5px;
+        }
+        
+        .filter-actions {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: flex-start;
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-secondary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(108, 117, 125, 0.3);
+        }
+        
+        .filter-status {
+            font-size: 11px;
+            color: #6c757d;
+            margin-top: 5px;
+            font-style: italic;
+        }
+        
+        .test-case-item.filtered-out {
+            display: none !important;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .file-upload-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .sides-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚗 Car Verification System</h1>
+            <div class="ai-badge">🧠 Powered by InceptionV3 + Advanced Preprocessing + YOLOv11</div>
+            
+            <div class="tech-stack">
+                <h3>🔬 AI Technology Stack</h3>
+                <div class="tech-tags">
+                    <span class="tech-tag">InceptionV3</span>
+                    <span class="tech-tag">Advanced Preprocessing</span>
+                    <span class="tech-tag">YOLOv11 Detection</span>
+                    <span class="tech-tag">Stored Features</span>
+                    <span class="tech-tag">Cosine Similarity</span>
+                    <span class="tech-tag">Fast Verification</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('upload')">🔧 Upload Reference</button>
+            <button class="tab" onclick="showTab('verify')">🔍 Verify Car</button>
+            <button class="tab" onclick="showTab('test-cases')">📊 Test Cases</button>
+            <button class="tab" onclick="showTab('references')">📚 View References</button>
+        </div>
+        
+        <!-- Upload Reference Tab -->
+        <div id="upload" class="tab-content active">
+            <div class="ai-detection-info">
+                <h4>🎯 Smart Car Detection & Advanced Feature Extraction</h4>
+                <p>Our system uses YOLOv11 to automatically detect cars, applies advanced image preprocessing (CLAHE, noise reduction, sharpening, gamma correction), then extracts deep learning features using InceptionV3. Features are pre-computed and stored for lightning-fast verification.</p>
+            </div>
+            
+            <form id="uploadForm" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="car_model">Car Model</label>
+                    <input type="text" id="car_model" name="model" required placeholder="e.g., Toyota Camry">
+                </div>
+                
+                <div class="form-group">
+                    <label for="car_year">Car Year</label>
+                    <select id="car_year" name="year" required>
+                        <option value="">Select Year</option>
+                        <!-- Years from 2024 down to 1990 -->
+                        <option value="2024">2024</option>
+                        <option value="2023">2023</option>
+                        <option value="2022">2022</option>
+                        <option value="2021">2021</option>
+                        <option value="2020">2020</option>
+                        <option value="2019">2019</option>
+                        <option value="2018">2018</option>
+                        <option value="2017">2017</option>
+                        <option value="2016">2016</option>
+                        <option value="2015">2015</option>
+                        <option value="2014">2014</option>
+                        <option value="2013">2013</option>
+                        <option value="2012">2012</option>
+                        <option value="2011">2011</option>
+                        <option value="2010">2010</option>
+                        <option value="2009">2009</option>
+                        <option value="2008">2008</option>
+                        <option value="2007">2007</option>
+                        <option value="2006">2006</option>
+                        <option value="2005">2005</option>
+                        <option value="2004">2004</option>
+                        <option value="2003">2003</option>
+                        <option value="2002">2002</option>
+                        <option value="2001">2001</option>
+                        <option value="2000">2000</option>
+                        <option value="1999">1999</option>
+                        <option value="1998">1998</option>
+                        <option value="1997">1997</option>
+                        <option value="1996">1996</option>
+                        <option value="1995">1995</option>
+                        <option value="1994">1994</option>
+                        <option value="1993">1993</option>
+                        <option value="1992">1992</option>
+                        <option value="1991">1991</option>
+                        <option value="1990">1990</option>
+                    </select>
+                </div>
+                
+                <div class="file-upload-grid">
+                    <div class="file-upload-item" id="front-upload">
+                        <h4>📷 Front View</h4>
+                        <input type="file" name="front_image" accept="image/*" class="file-input" onchange="previewImage(this, 'front')">
+                        <div id="front-preview"></div>
+                    </div>
+                    <div class="file-upload-item" id="back-upload">
+                        <h4>📷 Back View</h4>
+                        <input type="file" name="back_image" accept="image/*" class="file-input" onchange="previewImage(this, 'back')">
+                        <div id="back-preview"></div>
+                    </div>
+                    <div class="file-upload-item" id="left-upload">
+                        <h4>📷 Left View</h4>
+                        <input type="file" name="left_image" accept="image/*" class="file-input" onchange="previewImage(this, 'left')">
+                        <div id="left-preview"></div>
+                    </div>
+                    <div class="file-upload-item" id="right-upload">
+                        <h4>📷 Right View</h4>
+                        <input type="file" name="right_image" accept="image/*" class="file-input" onchange="previewImage(this, 'right')">
+                        <div id="right-preview"></div>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-full">🚀 Upload Reference Images</button>
+            </form>
+            
+            <div class="processing-indicator" id="uploadProcessing">
+                <div class="spinner"></div>
+                <div class="loading-text">🎨 Processing with Advanced Preprocessing + InceptionV3...</div>
+            </div>
+        </div>
+        
+        <!-- Verify Car Tab -->
+        <div id="verify" class="tab-content">
+            <div class="ai-detection-info">
+                <h4>🔬 Lightning-Fast AI Vehicle Verification</h4>
+                <p>Upload 4 images of a car to verify against our database. The system uses pre-computed reference features with advanced preprocessing for ultra-fast verification. Only uploaded images need processing, making verification 3-5x faster.</p>
+            </div>
+            
+            <form id="verifyForm" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="verify_car_model">Car Model to Verify</label>
+                    <input type="text" id="verify_car_model" name="model" required placeholder="e.g., Toyota Camry">
+                </div>
+                
+                <div class="form-group">
+                    <label for="verify_car_year">Car Year to Verify</label>
+                    <select id="verify_car_year" name="year" required>
+                        <option value="">Select Year</option>
+                        <!-- Same years as upload form -->
+                        <option value="2024">2024</option>
+                        <option value="2023">2023</option>
+                        <option value="2022">2022</option>
+                        <option value="2021">2021</option>
+                        <option value="2020">2020</option>
+                        <option value="2019">2019</option>
+                        <option value="2018">2018</option>
+                        <option value="2017">2017</option>
+                        <option value="2016">2016</option>
+                        <option value="2015">2015</option>
+                        <option value="2014">2014</option>
+                        <option value="2013">2013</option>
+                        <option value="2012">2012</option>
+                        <option value="2011">2011</option>
+                        <option value="2010">2010</option>
+                        <option value="2009">2009</option>
+                        <option value="2008">2008</option>
+                        <option value="2007">2007</option>
+                        <option value="2006">2006</option>
+                        <option value="2005">2005</option>
+                        <option value="2004">2004</option>
+                        <option value="2003">2003</option>
+                        <option value="2002">2002</option>
+                        <option value="2001">2001</option>
+                        <option value="2000">2000</option>
+                        <option value="1999">1999</option>
+                        <option value="1998">1998</option>
+                        <option value="1997">1997</option>
+                        <option value="1996">1996</option>
+                        <option value="1995">1995</option>
+                        <option value="1994">1994</option>
+                        <option value="1993">1993</option>
+                        <option value="1992">1992</option>
+                        <option value="1991">1991</option>
+                        <option value="1990">1990</option>
+                    </select>
+                </div>
+                
+                <div class="file-upload-grid">
+                    <div class="file-upload-item" id="verify-front-upload">
+                        <h4>📷 Front View</h4>
+                        <input type="file" name="front_image" accept="image/*" class="file-input" onchange="previewImage(this, 'verify-front')">
+                        <div id="verify-front-preview"></div>
+                    </div>
+                    <div class="file-upload-item" id="verify-back-upload">
+                        <h4>📷 Back View</h4>
+                        <input type="file" name="back_image" accept="image/*" class="file-input" onchange="previewImage(this, 'verify-back')">
+                        <div id="verify-back-preview"></div>
+                    </div>
+                    <div class="file-upload-item" id="verify-left-upload">
+                        <h4>📷 Left View</h4>
+                        <input type="file" name="left_image" accept="image/*" class="file-input" onchange="previewImage(this, 'verify-left')">
+                        <div id="verify-left-preview"></div>
+                    </div>
+                    <div class="file-upload-item" id="verify-right-upload">
+                        <h4>📷 Right View</h4>
+                        <input type="file" name="right_image" accept="image/*" class="file-input" onchange="previewImage(this, 'verify-right')">
+                        <div id="verify-right-preview"></div>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-full">🔍 Verify Car with InceptionV3</button>
+            </form>
+            
+            <div class="processing-indicator" id="verifyProcessing">
+                <div class="spinner"></div>
+                <div class="loading-text">⚡ Fast verification using stored features...</div>
+            </div>
+            
+            <div id="verificationResults"></div>
+        </div>
+        
+        <!-- Test Cases Tab -->
+        <div id="test-cases" class="tab-content">
+            <div class="ai-detection-info">
+                <h4>📊 Test Case Management & Reporting</h4>
+                <p>View all verification test cases and generate comprehensive PDF reports for selected cases. Perfect for analysis and documentation.</p>
+            </div>
+            
+            <!-- Filter Controls -->
+            <div class="filter-controls">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label for="filterModel">🚗 Car Model</label>
+                        <input type="text" id="filterModel" placeholder="e.g., Land Cruiser" onkeyup="applyFilters()">
+                    </div>
+                    <div class="filter-group">
+                        <label for="filterYear">📅 Year</label>
+                        <select id="filterYear" onchange="applyFilters()">
+                            <option value="">All Years</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="filterResult">✅ Result</label>
+                        <select id="filterResult" onchange="applyFilters()">
+                            <option value="">All Results</option>
+                            <option value="MATCH">✓ Match</option>
+                            <option value="NO_MATCH">✗ No Match</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="filterConfidence">🎯 Confidence</label>
+                        <select id="filterConfidence" onchange="applyFilters()">
+                            <option value="">All Confidence</option>
+                            <option value="High">High</option>
+                            <option value="Medium">Medium</option>
+                            <option value="Low">Low</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label for="filterDateFrom">📅 From Date</label>
+                        <input type="date" id="filterDateFrom" onchange="applyFilters()">
+                    </div>
+                    <div class="filter-group">
+                        <label for="filterDateTo">📅 To Date</label>
+                        <input type="date" id="filterDateTo" onchange="applyFilters()">
+                    </div>
+                    <div class="filter-group">
+                        <label for="filterSimilarity">📊 Min Similarity (%)</label>
+                        <input type="range" id="filterSimilarity" min="0" max="100" value="0" 
+                               oninput="document.getElementById('similarityValue').textContent = this.value + '%'; applyFilters()">
+                        <span id="similarityValue">0%</span>
+                    </div>
+                    <div class="filter-group filter-actions">
+                        <button onclick="clearFilters()" class="btn btn-secondary">🔄 Clear Filters</button>
+                        <span id="filterStatus" class="filter-status"></span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="test-case-controls">
+                <button onclick="loadTestCases()" class="btn" style="margin-right: 10px;">🔄 Refresh Test Cases</button>
+                <div class="download-controls">
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="includeImagesCheckbox" checked>
+                        <span class="checkmark"></span>
+                        Include images in PDF
+                    </label>
+                    <button onclick="downloadSelectedCases()" class="btn" id="downloadBtn" disabled>📄 Download Selected as PDF</button>
+                </div>
+                <button onclick="selectAllCases()" class="btn" style="margin-left: 10px;">☑️ Select All</button>
+                <button onclick="deselectAllCases()" class="btn">⬜ Deselect All</button>
+            </div>
+            
+            <div id="testCasesList" class="test-cases-container">
+                <div class="loading-message">Click "Refresh Test Cases" to load verification history...</div>
+            </div>
+        </div>
+        
+        <!-- References Tab -->
+        <div id="references" class="tab-content">
+            <div class="ai-detection-info">
+                <h4>📚 Stored Car References</h4>
+                <p>All reference images are processed using our InceptionV3 + YOLOv11 pipeline for robust feature extraction and storage in our vehicle database.</p>
+            </div>
+            
+            <div id="referencesList" class="car-references">
+                <div class="empty-state">
+                    <h3>🔄 Loading references...</h3>
+                    <p>Please wait while we fetch your stored car references.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tab switching functionality
+        function showTab(tabName) {
+            // Hide all tabs and remove active class
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab and add active class
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+            
+            // Load references when references tab is opened
+            if (tabName === 'references') {
+                loadReferences();
+            }
+        }
+
+        // Image preview functionality
+        function previewImage(input, previewId) {
+            const file = input.files[0];
+            const previewDiv = document.getElementById(previewId + '-preview');
+            const uploadItem = document.getElementById(previewId + '-upload');
+            
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const fileSize = (file.size / 1024 / 1024).toFixed(2); // Size in MB
+                    previewDiv.innerHTML = `
+                        <img src="${e.target.result}" alt="Preview" class="image-preview">
+                        <div class="file-info">
+                            <div>${file.name}</div>
+                            <div>${fileSize} MB</div>
+                        </div>
+                    `;
+                    uploadItem.classList.add('has-file');
+                };
+                reader.readAsDataURL(file);
+            } else {
+                previewDiv.innerHTML = '';
+                uploadItem.classList.remove('has-file');
+            }
+        }
+
+        // Upload form submission
+        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const processingIndicator = document.getElementById('uploadProcessing');
+            
+            // Show processing indicator
+            processingIndicator.style.display = 'block';
+            
+            try {
+                const response = await fetch('/upload-reference', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                // Hide processing indicator
+                processingIndicator.style.display = 'none';
+                
+                if (response.ok) {
+                    showAlert('✅ Reference images uploaded successfully! Features extracted with advanced preprocessing and stored for fast verification.', 'success');
+                    this.reset();
+                    // Clear all previews
+                    ['front', 'back', 'left', 'right'].forEach(side => {
+                        document.getElementById(side + '-preview').innerHTML = '';
+                        document.getElementById(side + '-upload').classList.remove('has-file');
+                    });
+                } else {
+                    showAlert('❌ Error: ' + (result.detail || 'Upload failed'), 'error');
+                }
+            } catch (error) {
+                processingIndicator.style.display = 'none';
+                showAlert('❌ Network error: ' + error.message, 'error');
+            }
+        });
+
+        // Verify form submission
+        document.getElementById('verifyForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const processingIndicator = document.getElementById('verifyProcessing');
+            const resultsDiv = document.getElementById('verificationResults');
+            
+            // Show processing indicator and clear previous results
+            processingIndicator.style.display = 'block';
+            resultsDiv.innerHTML = '';
+            
+            try {
+                const response = await fetch('/verify-car', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                // Hide processing indicator
+                processingIndicator.style.display = 'none';
+                
+                if (response.ok) {
+                    displayVerificationResults(result);
+                } else {
+                    showAlert('❌ Error: ' + (result.detail || 'Verification failed'), 'error');
+                }
+            } catch (error) {
+                processingIndicator.style.display = 'none';
+                showAlert('❌ Network error: ' + error.message, 'error');
+            }
+        });
+
+        // Display verification results
+        function displayVerificationResults(response) {
+            const resultsDiv = document.getElementById('verificationResults');
+            const results = response.results || response; // Handle both response structures
+            const overall = results.overall_result;
+            
+            // Safety check for required properties
+            if (!overall) {
+                resultsDiv.innerHTML = `
+                    <div class="alert alert-error">
+                        <strong>❌ Error:</strong> Invalid verification results format
+                    </div>
+                `;
+                return;
+            }
+            
+            let overallClass = 'danger';
+            const confidence = overall.confidence || 'Low';
+            if (confidence === 'Very High' || confidence === 'High') {
+                overallClass = 'success';
+            } else if (confidence === 'Medium') {
+                overallClass = 'warning';
+            }
+            
+            let html = `
+                <div class="verification-result">
+                    <div class="result-header">
+                        <h2>🔬 InceptionV3 AI Verification Results</h2>
+                    </div>
+                    
+                    <div class="ai-detection-info">
+                        <h4>🧠 ${overall.detection_method}</h4>
+                        <div class="detection-metrics">
+                            <div class="metric">
+                                <div class="metric-label">Similarity</div>
+                                <div class="metric-value">${((overall.average_similarity || 0) * 100).toFixed(1)}%</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">Threshold</div>
+                                <div class="metric-value">${((overall.similarity_threshold || 0.88) * 100).toFixed(0)}%</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">Matched Sides</div>
+                                <div class="metric-value">${overall.matched_sides || 0}/4</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">AI Model</div>
+                                <div class="metric-value">InceptionV3</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="result-overall ${overallClass}">
+                        <h3>${overall.is_same_car ? '✅ SAME CAR VERIFIED' : '❌ DIFFERENT CAR DETECTED'}</h3>
+                        <p><strong>Overall Similarity:</strong> ${((overall.average_similarity || 0) * 100).toFixed(2)}%</p>
+                        <p><strong>Confidence Level:</strong> ${confidence}</p>
+                        <p><strong>AI Architecture:</strong> ${overall.model_architecture || 'OSNet_x1_0 with GeM pooling'}</p>
+                    </div>
+                    
+                    <div class="sides-grid">
+            `;
+            
+            const sides = ['front', 'back', 'left', 'right'];
+            sides.forEach(side => {
+                if (results[side]) {
+                    const sideResult = results[side];
+                    const matchClass = sideResult.is_match ? 'match' : 'no-match';
+                    const sideConfidence = sideResult.confidence || 'Low';
+                    const confidenceClass = getConfidenceClass(sideConfidence);
+                    
+                    // Get primary similarity score (combined if available, otherwise cosine)
+                    const primarySimilarity = sideResult.combined_similarity || sideResult.cosine_similarity || sideResult.overall_similarity || 0;
+                    
+                    html += `
+                        <div class="side-result ${matchClass}">
+                            <div class="side-title">${side} View</div>
+                            <div class="similarity-score">${(primarySimilarity * 100).toFixed(1)}%</div>
+                            <div class="confidence-badge ${confidenceClass}">${sideConfidence} Confidence</div>
+                            
+                            ${sideResult.reference_car_detected || sideResult.upload_car_detected ? `
+                                <div style="margin-top: 10px; font-size: 12px; color: #6c757d;">
+                                    <div>🎯 Reference: ${sideResult.reference_car_detected ? 'Car Detected' : 'Full Image'}</div>
+                                    <div>🎯 Upload: ${sideResult.upload_car_detected ? 'Car Detected' : 'Full Image'}</div>
+                                </div>
+                            ` : ''}
+                            
+                            ${sideResult.processing_method ? `
+                                <div style="margin-top: 8px; font-size: 11px; color: #6c757d;">
+                                    ${sideResult.model_used}
+                                </div>
+                                <div style="margin-top: 4px; font-size: 10px; color: ${(() => {
+                                    // Safe processing method handling - v2.0
+                                    const method = sideResult.processing_method;
+                                    if (!method) return '#6c757d';
+                                    if (typeof method === 'string') {
+                                        return method.includes('NO PREPROCESSING') ? '#dc3545' : '#6c757d';
+                                    } else if (typeof method === 'object' && method !== null) {
+                                        const uploadMethod = String(method.upload || '');
+                                        return uploadMethod.includes('NO PREPROCESSING') ? '#dc3545' : '#6c757d';
+                                    }
+                                    return '#6c757d';
+                                })()};">
+                                    ${(() => {
+                                        // Safe processing method display - v2.0
+                                        const method = sideResult.processing_method;
+                                        if (!method) return 'Unknown processing method';
+                                        if (typeof method === 'string') {
+                                            return method;
+                                        } else if (typeof method === 'object' && method !== null) {
+                                            return String(method.upload || 'Unknown processing method');
+                                        }
+                                        return 'Unknown processing method';
+                                    })()}
+                                </div>
+                            ` : ''}
+                            
+                            <!-- Visualization Images -->
+                            ${sideResult.upload_detection_visualization || sideResult.upload_preprocessed_visualization ? `
+                                <div class="visualization-section" style="margin-top: 15px;">
+                                    <div style="font-size: 12px; font-weight: bold; color: #495057; margin-bottom: 8px;">
+                                        🔬 AI Processing Visualizations
+                                    </div>
+                                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                        ${sideResult.upload_detection_visualization ? `
+                                            <div style="flex: 1; min-width: 120px;">
+                                                <div style="font-size: 10px; color: #6c757d; margin-bottom: 4px;">Car Detection</div>
+                                                <img src="/${sideResult.upload_detection_visualization}" 
+                                                     style="width: 100%; height: 80px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd; cursor: pointer;"
+                                                     onclick="window.open('/${sideResult.upload_detection_visualization}', '_blank')"
+                                                     title="Click to view full-size detection visualization">
+                                            </div>
+                                        ` : ''}
+                                        ${sideResult.upload_preprocessed_visualization ? `
+                                            <div style="flex: 1; min-width: 120px;">
+                                                <div style="font-size: 10px; color: #6c757d; margin-bottom: 4px;">Preprocessed</div>
+                                                <img src="/${sideResult.upload_preprocessed_visualization}" 
+                                                     style="width: 100%; height: 80px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd; cursor: pointer;"
+                                                     onclick="window.open('/${sideResult.upload_preprocessed_visualization}', '_blank')"
+                                                     title="Click to view full-size preprocessed image">
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                    <div style="font-size: 9px; color: #adb5bd; margin-top: 4px; text-align: center;">
+                                        Click images to view full-size
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                }
+            });
+            
+            html += `
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <strong>🔬 Technical Details:</strong><br>
+                        • <strong>AI Model:</strong> ${overall.model_architecture || 'OSNet_x1_0 with GeM pooling'}<br>
+                        • <strong>Detection Method:</strong> ${overall.detection_method || 'OSNet (Omni-Scale Network) + YOLOv11 + GeM Pooling'}<br>
+                        • <strong>Similarity Threshold:</strong> ${((overall.similarity_threshold || 0.88) * 100)}% for positive match<br>
+                        • <strong>Processing:</strong> YOLOv11 car detection + OSNet feature extraction + GeM pooling
+                    </div>
+                </div>
+            `;
+            
+            resultsDiv.innerHTML = html;
+        }
+
+        // Get confidence class for styling
+        function getConfidenceClass(confidence) {
+            if (!confidence || typeof confidence !== 'string') {
+                return 'confidence-low';
+            }
+            
+            switch(confidence.toLowerCase()) {
+                case 'very high':
+                    return 'confidence-very-high';
+                case 'high':
+                    return 'confidence-high';
+                case 'medium':
+                    return 'confidence-medium';
+                default:
+                    return 'confidence-low';
+            }
+        }
+
+        // Load references
+        async function loadReferences() {
+            const referencesList = document.getElementById('referencesList');
+            
+            try {
+                const response = await fetch('/references');
+                const references = await response.json();
+                
+                if (references.length === 0) {
+                    referencesList.innerHTML = `
+                        <div class="empty-state">
+                            <h3>📁 No References Found</h3>
+                            <p>Upload some reference images using the "Upload Reference" tab to get started with InceptionV3 AI car verification.</p>
+                        </div>
+                    `;
+                } else {
+                    let html = '';
+                    references.forEach(ref => {
+                        if (!ref) return; // Skip if ref is undefined
+                        
+                        html += `
+                            <div class="reference-item">
+                                <div class="reference-header">
+                                    <div class="reference-info">
+                                        <h3>🚗 ${ref.model || ref.car_model || 'Unknown'} ${ref.year || ref.car_year || 'Unknown'}</h3>
+                                        <div class="reference-date">📅 Uploaded: ${ref.created_at ? new Date(ref.created_at).toLocaleDateString() : 'Unknown'}</div>
+                                        <div class="reference-date">🧠 Processed with InceptionV3 AI features</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Image Processing Toggle -->
+                                <div class="processing-toggle" style="margin: 15px 0; text-align: center;">
+                                    <button onclick="toggleImageType(this, '${ref.id}')" 
+                                            style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-size: 12px; font-weight: 600;">
+                                        🎯 Show Detection Images
+                                    </button>
+                                    <div style="font-size: 10px; color: #6c757d; margin-top: 5px;">
+                                        Click to toggle between original and AI-processed images
+                                    </div>
+                                </div>
+                                
+                                <!-- Original Images -->
+                                <div class="reference-images" id="original-${ref.id}" style="display: block;">
+                                    <div style="text-align: center; margin-bottom: 10px; font-size: 12px; font-weight: bold; color: #495057;">
+                                        📁 Original Uploaded Images
+                                    </div>
+                                    ${ref.front_image_path || ref.front_image ? `<div class="reference-image"><img src="${ref.front_image_path || ref.front_image}" alt="Front Original" onclick="window.open('${ref.front_image_path || ref.front_image}', '_blank')" style="cursor: pointer;" title="Click to view full-size"><p>Front</p></div>` : ''}
+                                    ${ref.back_image_path || ref.back_image ? `<div class="reference-image"><img src="${ref.back_image_path || ref.back_image}" alt="Back Original" onclick="window.open('${ref.back_image_path || ref.back_image}', '_blank')" style="cursor: pointer;" title="Click to view full-size"><p>Back</p></div>` : ''}
+                                    ${ref.left_image_path || ref.left_image ? `<div class="reference-image"><img src="${ref.left_image_path || ref.left_image}" alt="Left Original" onclick="window.open('${ref.left_image_path || ref.left_image}', '_blank')" style="cursor: pointer;" title="Click to view full-size"><p>Left</p></div>` : ''}
+                                    ${ref.right_image_path || ref.right_image ? `<div class="reference-image"><img src="${ref.right_image_path || ref.right_image}" alt="Right Original" onclick="window.open('${ref.right_image_path || ref.right_image}', '_blank')" style="cursor: pointer;" title="Click to view full-size"><p>Right</p></div>` : ''}
+                                </div>
+                                
+                                <!-- Detection Visualization Images -->
+                                <div class="reference-images" id="detection-${ref.id}" style="display: none;">
+                                    <div style="text-align: center; margin-bottom: 10px; font-size: 12px; font-weight: bold; color: #495057;">
+                                        🎯 Car Detection Visualization (YOLOv11)
+                                    </div>
+                                    ${ref.front_detection_path ? `<div class="reference-image"><img src="${ref.front_detection_path}" alt="Front Detection" onclick="window.open('${ref.front_detection_path}', '_blank')" style="cursor: pointer;" title="Click to view full-size - Shows detected car regions"><p>Front</p></div>` : '<div class="reference-image no-image"><div style="display: flex; align-items: center; justify-content: center; height: 150px; background: #f8f9fa; border: 2px dashed #dee2e6; border-radius: 8px;"><span style="color: #6c757d;">No detection data</span></div><p>Front</p></div>'}
+                                    ${ref.back_detection_path ? `<div class="reference-image"><img src="${ref.back_detection_path}" alt="Back Detection" onclick="window.open('${ref.back_detection_path}', '_blank')" style="cursor: pointer;" title="Click to view full-size - Shows detected car regions"><p>Back</p></div>` : '<div class="reference-image no-image"><div style="display: flex; align-items: center; justify-content: center; height: 150px; background: #f8f9fa; border: 2px dashed #dee2e6; border-radius: 8px;"><span style="color: #6c757d;">No detection data</span></div><p>Back</p></div>'}
+                                    ${ref.left_detection_path ? `<div class="reference-image"><img src="${ref.left_detection_path}" alt="Left Detection" onclick="window.open('${ref.left_detection_path}', '_blank')" style="cursor: pointer;" title="Click to view full-size - Shows detected car regions"><p>Left</p></div>` : '<div class="reference-image no-image"><div style="display: flex; align-items: center; justify-content: center; height: 150px; background: #f8f9fa; border: 2px dashed #dee2e6; border-radius: 8px;"><span style="color: #6c757d;">No detection data</span></div><p>Left</p></div>'}
+                                    ${ref.right_detection_path ? `<div class="reference-image"><img src="${ref.right_detection_path}" alt="Right Detection" onclick="window.open('${ref.right_detection_path}', '_blank')" style="cursor: pointer;" title="Click to view full-size - Shows detected car regions"><p>Right</p></div>` : '<div class="reference-image no-image"><div style="display: flex; align-items: center; justify-content: center; height: 150px; background: #f8f9fa; border: 2px dashed #dee2e6; border-radius: 8px;"><span style="color: #6c757d;">No detection data</span></div><p>Right</p></div>'}
+                                </div>
+                                
+                                <!-- Processed Images (What AI Sees) -->
+                                <div class="reference-images" id="processed-${ref.id}" style="display: none;">
+                                    <div style="text-align: center; margin-bottom: 10px; font-size: 12px; font-weight: bold; color: #495057;">
+                                        🧠 AI Model Input (Preprocessed Images)
+                                    </div>
+                                    <div style="text-align: center; margin-bottom: 15px; font-size: 10px; color: #6c757d; background: #f8f9fa; padding: 8px; border-radius: 6px;">
+                                        These are the actual images fed to the InceptionV3 model after car detection, cropping, and preprocessing
+                                    </div>
+                                    ${ref.front_processed_path ? `<div class="reference-image"><img src="${ref.front_processed_path}" alt="Front Processed" onclick="window.open('${ref.front_processed_path}', '_blank')" style="cursor: pointer;" title="Click to view full-size - This is what the AI model sees"><p>Front</p></div>` : '<div class="reference-image no-image"><div style="display: flex; align-items: center; justify-content: center; height: 150px; background: #f8f9fa; border: 2px dashed #dee2e6; border-radius: 8px;"><span style="color: #6c757d;">No processed data</span></div><p>Front</p></div>'}
+                                    ${ref.back_processed_path ? `<div class="reference-image"><img src="${ref.back_processed_path}" alt="Back Processed" onclick="window.open('${ref.back_processed_path}', '_blank')" style="cursor: pointer;" title="Click to view full-size - This is what the AI model sees"><p>Back</p></div>` : '<div class="reference-image no-image"><div style="display: flex; align-items: center; justify-content: center; height: 150px; background: #f8f9fa; border: 2px dashed #dee2e6; border-radius: 8px;"><span style="color: #6c757d;">No processed data</span></div><p>Back</p></div>'}
+                                    ${ref.left_processed_path ? `<div class="reference-image"><img src="${ref.left_processed_path}" alt="Left Processed" onclick="window.open('${ref.left_processed_path}', '_blank')" style="cursor: pointer;" title="Click to view full-size - This is what the AI model sees"><p>Left</p></div>` : '<div class="reference-image no-image"><div style="display: flex; align-items: center; justify-content: center; height: 150px; background: #f8f9fa; border: 2px dashed #dee2e6; border-radius: 8px;"><span style="color: #6c757d;">No processed data</span></div><p>Left</p></div>'}
+                                    ${ref.right_processed_path ? `<div class="reference-image"><img src="${ref.right_processed_path}" alt="Right Processed" onclick="window.open('${ref.right_processed_path}', '_blank')" style="cursor: pointer;" title="Click to view full-size - This is what the AI model sees"><p>Right</p></div>` : '<div class="reference-image no-image"><div style="display: flex; align-items: center; justify-content: center; height: 150px; background: #f8f9fa; border: 2px dashed #dee2e6; border-radius: 8px;"><span style="color: #6c757d;">No processed data</span></div><p>Right</p></div>'}
+                                </div>
+                            </div>
+                        `;
+                    });
+                    referencesList.innerHTML = html;
+                }
+            } catch (error) {
+                referencesList.innerHTML = `
+                    <div class="empty-state">
+                        <h3>❌ Error Loading References</h3>
+                        <p>There was an error loading the references: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Show alert message
+        function showAlert(message, type) {
+            // Remove existing alerts
+            const existingAlerts = document.querySelectorAll('.alert');
+            existingAlerts.forEach(alert => alert.remove());
+            
+            // Create new alert
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.innerHTML = message;
+            
+            // Insert after the active tab content
+            const activeTab = document.querySelector('.tab-content.active');
+            activeTab.insertBefore(alert, activeTab.firstChild);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (alert.parentNode) {
+                    alert.remove();
+                }
+            }, 5000);
+        }
+
+        // Toggle between original, detection, and processed images
+        function toggleImageType(button, refId) {
+            const originalDiv = document.getElementById(`original-${refId}`);
+            const detectionDiv = document.getElementById(`detection-${refId}`);
+            const processedDiv = document.getElementById(`processed-${refId}`);
+            
+            // Define the states and their display names
+            const states = [
+                { div: originalDiv, name: '🎯 Show Detection Images', description: 'Original uploaded images' },
+                { div: detectionDiv, name: '🧠 Show AI Model Input', description: 'Car detection visualization with bounding boxes' },
+                { div: processedDiv, name: '📷 Show Original Images', description: 'Preprocessed images fed to the AI model' }
+            ];
+            
+            // Find currently visible state
+            let currentIndex = 0;
+            for (let i = 0; i < states.length; i++) {
+                if (states[i].div && states[i].div.style.display !== 'none') {
+                    currentIndex = i;
+                    break;
+                }
+            }
+            
+            // Hide current state
+            if (states[currentIndex].div) {
+                states[currentIndex].div.style.display = 'none';
+            }
+            
+            // Show next state (cycle through)
+            const nextIndex = (currentIndex + 1) % states.length;
+            if (states[nextIndex].div) {
+                states[nextIndex].div.style.display = 'block';
+                button.innerHTML = states[nextIndex].name;
+                
+                // Update description
+                const descriptionDiv = button.nextElementSibling;
+                if (descriptionDiv) {
+                    descriptionDiv.innerHTML = `Click to toggle • Currently showing: ${states[nextIndex].description}`;
+                }
+            }
+        }
+
+        // Load references on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadReferences();
+        });
+        
+        // Test Case Management Functions
+        let selectedTestCases = new Set();
+        let allTestCases = []; // Store all test cases for filtering
+        
+        // Load all test cases
+        async function loadTestCases() {
+            const testCasesList = document.getElementById('testCasesList');
+            
+            try {
+                testCasesList.innerHTML = `
+                    <div class="loading-message">
+                        <div class="spinner" style="width: 30px; height: 30px; margin: 0 auto 10px;"></div>
+                        Loading test cases...
+                    </div>
+                `;
+                
+                const response = await fetch('/list-test-cases');
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Failed to load test cases');
+                }
+                
+                allTestCases = data.test_cases || [];
+                
+                if (allTestCases.length === 0) {
+                    testCasesList.innerHTML = `
+                        <div class="loading-message">
+                            <h3>📊 No Test Cases Found</h3>
+                            <p>No verification attempts have been made yet. Use the "Verify Car" tab to create test cases.</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Populate filter options
+                populateFilterOptions();
+                
+                // Display test cases
+                displayTestCases(allTestCases);
+                updateDownloadButton();
+                
+            } catch (error) {
+                testCasesList.innerHTML = `
+                    <div class="loading-message">
+                        <h3>❌ Error Loading Test Cases</h3>
+                        <p>Failed to load test cases: ${error.message}</p>
+                        <button onclick="loadTestCases()" class="btn" style="margin-top: 10px;">🔄 Retry</button>
+                    </div>
+                `;
+            }
+        }
+        
+        // Populate filter dropdown options based on available data
+        function populateFilterOptions() {
+            const years = [...new Set(allTestCases.map(tc => tc.car_year))].sort((a, b) => b - a);
+            const yearSelect = document.getElementById('filterYear');
+            
+            // Clear existing options except "All Years"
+            yearSelect.innerHTML = '<option value="">All Years</option>';
+            
+            // Add year options
+            years.forEach(year => {
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = year;
+                yearSelect.appendChild(option);
+            });
+        }
+        
+        // Display test cases in the UI
+        function displayTestCases(testCases) {
+            const testCasesList = document.getElementById('testCasesList');
+            
+            // Create header
+            let html = `
+                <div class="test-cases-header">
+                    <input type="checkbox" onchange="toggleAllSelection(this)" id="selectAllCheckbox">
+                    <div>Car Model & Year</div>
+                    <div>Test Date</div>
+                    <div>Result</div>
+                    <div>Similarity</div>
+                    <div>Confidence</div>
+                </div>
+            `;
+            
+            // Add test cases
+            testCases.forEach(testCase => {
+                const similarityClass = testCase.average_similarity >= 0.8 ? 'similarity-high' : 
+                                      testCase.average_similarity >= 0.7 ? 'similarity-medium' : 'similarity-low';
+                
+                html += `
+                    <div class="test-case-item" data-case-id="${testCase.id}" 
+                         data-model="${testCase.car_model.toLowerCase()}"
+                         data-year="${testCase.car_year}"
+                         data-result="${testCase.overall_result}"
+                         data-confidence="${testCase.confidence}"
+                         data-similarity="${testCase.average_similarity}"
+                         data-date="${testCase.created_at}">
+                        <input type="checkbox" class="test-case-checkbox" value="${testCase.id}" 
+                               onchange="updateSelection(this)">
+                        <div class="test-case-info">
+                            <div class="test-case-field">
+                                <div class="test-case-label">Model & Year</div>
+                                <div class="test-case-value">${testCase.car_model} ${testCase.car_year}</div>
+                            </div>
+                            <div class="test-case-field">
+                                <div class="test-case-label">Date</div>
+                                <div class="test-case-value">${testCase.test_date}</div>
+                            </div>
+                            <div class="test-case-field">
+                                <div class="test-case-label">Result</div>
+                                <div class="test-case-value">
+                                    <span class="test-case-status ${testCase.overall_result === 'MATCH' ? 'status-match' : 'status-no-match'}">
+                                        ${testCase.overall_result === 'MATCH' ? '✓ Match' : '✗ No Match'}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="test-case-field">
+                                <div class="test-case-label">Similarity</div>
+                                <div class="test-case-value">
+                                    <span class="test-case-similarity ${similarityClass}">
+                                        ${(testCase.average_similarity * 100).toFixed(1)}%
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="test-case-field">
+                                <div class="test-case-label">Confidence</div>
+                                <div class="test-case-value">
+                                    <span class="confidence-badge ${getConfidenceClass(testCase.confidence)}">
+                                        ${testCase.confidence}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="delete-test-case-btn" onclick="deleteTestCase(${testCase.id})" 
+                                title="Delete this test case">
+                            ✗
+                        </button>
+                    </div>
+                `;
+            });
+            
+            testCasesList.innerHTML = html;
+        }
+        
+        // Apply filters to test cases
+        function applyFilters() {
+            const filterModel = document.getElementById('filterModel').value.toLowerCase();
+            const filterYear = document.getElementById('filterYear').value;
+            const filterResult = document.getElementById('filterResult').value;
+            const filterConfidence = document.getElementById('filterConfidence').value;
+            const filterDateFrom = document.getElementById('filterDateFrom').value;
+            const filterDateTo = document.getElementById('filterDateTo').value;
+            const filterSimilarity = parseFloat(document.getElementById('filterSimilarity').value) / 100;
+            
+            const testCaseItems = document.querySelectorAll('.test-case-item');
+            let visibleCount = 0;
+            
+            testCaseItems.forEach(item => {
+                const model = item.dataset.model || '';
+                const year = item.dataset.year || '';
+                const result = item.dataset.result || '';
+                const confidence = item.dataset.confidence || '';
+                const similarity = parseFloat(item.dataset.similarity) || 0;
+                const date = new Date(item.dataset.date);
+                
+                let showItem = true;
+                
+                // Model filter
+                if (filterModel && !model.includes(filterModel)) {
+                    showItem = false;
+                }
+                
+                // Year filter
+                if (filterYear && year !== filterYear) {
+                    showItem = false;
+                }
+                
+                // Result filter
+                if (filterResult && result !== filterResult) {
+                    showItem = false;
+                }
+                
+                // Confidence filter
+                if (filterConfidence && confidence !== filterConfidence) {
+                    showItem = false;
+                }
+                
+                // Date range filter
+                if (filterDateFrom) {
+                    const fromDate = new Date(filterDateFrom);
+                    if (date < fromDate) {
+                        showItem = false;
+                    }
+                }
+                
+                if (filterDateTo) {
+                    const toDate = new Date(filterDateTo);
+                    toDate.setHours(23, 59, 59); // Include the entire end date
+                    if (date > toDate) {
+                        showItem = false;
+                    }
+                }
+                
+                // Similarity filter
+                if (similarity < filterSimilarity) {
+                    showItem = false;
+                }
+                
+                // Apply visibility
+                if (showItem) {
+                    item.classList.remove('filtered-out');
+                    visibleCount++;
+                } else {
+                    item.classList.add('filtered-out');
+                    // Uncheck if hidden
+                    const checkbox = item.querySelector('.test-case-checkbox');
+                    if (checkbox && checkbox.checked) {
+                        checkbox.checked = false;
+                        updateSelection(checkbox);
+                    }
+                }
+            });
+            
+            // Update filter status
+            const filterStatus = document.getElementById('filterStatus');
+            const totalCount = testCaseItems.length;
+            
+            if (visibleCount === totalCount) {
+                filterStatus.textContent = `Showing all ${totalCount} test cases`;
+            } else {
+                filterStatus.textContent = `Showing ${visibleCount} of ${totalCount} test cases`;
+            }
+            
+            // Update select all checkbox
+            updateSelectAllCheckbox();
+        }
+        
+        // Clear all filters
+        function clearFilters() {
+            document.getElementById('filterModel').value = '';
+            document.getElementById('filterYear').value = '';
+            document.getElementById('filterResult').value = '';
+            document.getElementById('filterConfidence').value = '';
+            document.getElementById('filterDateFrom').value = '';
+            document.getElementById('filterDateTo').value = '';
+            document.getElementById('filterSimilarity').value = '0';
+            document.getElementById('similarityValue').textContent = '0%';
+            
+            // Show all items
+            document.querySelectorAll('.test-case-item').forEach(item => {
+                item.classList.remove('filtered-out');
+            });
+            
+            // Update filter status
+            const filterStatus = document.getElementById('filterStatus');
+            const totalCount = document.querySelectorAll('.test-case-item').length;
+            filterStatus.textContent = totalCount > 0 ? `Showing all ${totalCount} test cases` : '';
+            
+            // Update select all checkbox
+            updateSelectAllCheckbox();
+        }
+        
+        // Update selection when checkbox is changed
+        function updateSelection(checkbox) {
+            const caseId = parseInt(checkbox.value);
+            const testCaseItem = checkbox.closest('.test-case-item');
+            
+            if (checkbox.checked) {
+                selectedTestCases.add(caseId);
+                testCaseItem.classList.add('selected');
+            } else {
+                selectedTestCases.delete(caseId);
+                testCaseItem.classList.remove('selected');
+            }
+            
+            updateDownloadButton();
+            updateSelectAllCheckbox();
+        }
+        
+        // Toggle all selection
+        function toggleAllSelection(selectAllCheckbox) {
+            const allCheckboxes = document.querySelectorAll('.test-case-checkbox');
+            const visibleItems = document.querySelectorAll('.test-case-item:not(.filtered-out)');
+            const visibleCheckboxes = document.querySelectorAll('.test-case-item:not(.filtered-out) .test-case-checkbox');
+            
+            if (selectAllCheckbox.checked) {
+                // Select only visible items
+                visibleCheckboxes.forEach(checkbox => {
+                    if (!checkbox.checked) {
+                        checkbox.checked = true;
+                        selectedTestCases.add(parseInt(checkbox.value));
+                    }
+                });
+                visibleItems.forEach(item => item.classList.add('selected'));
+            } else {
+                // Deselect only visible items
+                visibleCheckboxes.forEach(checkbox => {
+                    if (checkbox.checked) {
+                        checkbox.checked = false;
+                        selectedTestCases.delete(parseInt(checkbox.value));
+                    }
+                });
+                visibleItems.forEach(item => item.classList.remove('selected'));
+            }
+            
+            updateDownloadButton();
+        }
+        
+        // Update select all checkbox state
+        function updateSelectAllCheckbox() {
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+            const visibleCheckboxes = document.querySelectorAll('.test-case-item:not(.filtered-out) .test-case-checkbox');
+            
+            if (selectAllCheckbox && visibleCheckboxes.length > 0) {
+                const checkedCount = document.querySelectorAll('.test-case-item:not(.filtered-out) .test-case-checkbox:checked').length;
+                selectAllCheckbox.checked = checkedCount === visibleCheckboxes.length;
+                selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < visibleCheckboxes.length;
+            } else if (selectAllCheckbox) {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = false;
+            }
+        }
+        
+        // Select all visible cases
+        function selectAllCases() {
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+            if (selectAllCheckbox) {
+                selectAllCheckbox.checked = true;
+                toggleAllSelection(selectAllCheckbox);
+            }
+        }
+        
+        // Deselect all visible cases
+        function deselectAllCases() {
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+            if (selectAllCheckbox) {
+                selectAllCheckbox.checked = false;
+                toggleAllSelection(selectAllCheckbox);
+            }
+        }
+        
+        // Update download button state
+        function updateDownloadButton() {
+            const downloadBtn = document.getElementById('downloadBtn');
+            if (downloadBtn) {
+                downloadBtn.disabled = selectedTestCases.size === 0;
+                downloadBtn.textContent = selectedTestCases.size > 0 ? 
+                    `📄 Download ${selectedTestCases.size} Selected as PDF` : 
+                    '📄 Download Selected as PDF';
+            }
+        }
+        
+        // Download selected test cases as PDF
+        async function downloadSelectedCases() {
+            if (selectedTestCases.size === 0) {
+                showAlert('⚠️ Please select at least one test case to download.', 'error');
+                return;
+            }
+            
+            const downloadBtn = document.getElementById('downloadBtn');
+            const originalText = downloadBtn.textContent;
+            
+            try {
+                downloadBtn.disabled = true;
+                downloadBtn.textContent = '📄 Generating PDF...';
+                
+                // Convert set to comma-separated string
+                const caseIds = Array.from(selectedTestCases).join(',');
+                
+                // Get include images checkbox value
+                const includeImagesCheckbox = document.getElementById('includeImagesCheckbox');
+                const includeImages = includeImagesCheckbox ? includeImagesCheckbox.checked : true;
+                
+                // Create form data
+                const formData = new FormData();
+                formData.append('case_ids', caseIds);
+                formData.append('include_images', includeImages.toString());
+                
+                const response = await fetch('/download-selected-test-cases', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Failed to generate PDF');
+                }
+                
+                // Get the file blob
+                const blob = await response.blob();
+                
+                // Create download link
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = `test_cases_report_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.pdf`;
+                
+                document.body.appendChild(a);
+                a.click();
+                
+                // Cleanup
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                showAlert(`✅ Successfully downloaded PDF report with ${selectedTestCases.size} test cases!`, 'success');
+                
+            } catch (error) {
+                showAlert(`❌ Error generating PDF: ${error.message}`, 'error');
+            } finally {
+                downloadBtn.disabled = false;
+                downloadBtn.textContent = originalText;
+            }
+        }
+        
+        // Delete a test case
+        async function deleteTestCase(caseId) {
+            if (!confirm('Are you sure you want to delete this test case? This action cannot be undone.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/delete-test-case/${caseId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Failed to delete test case');
+                }
+                
+                const result = await response.json();
+                showAlert(`✅ ${result.message}`, 'success');
+                
+                // Remove the test case from selectedTestCases if it was selected
+                selectedTestCases.delete(caseId);
+                
+                // Reload the test cases list
+                loadTestCases();
+                
+            } catch (error) {
+                showAlert(`❌ Error deleting test case: ${error.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+</html>
+ 
