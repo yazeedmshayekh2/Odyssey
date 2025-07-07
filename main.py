@@ -323,6 +323,21 @@ async def verify_car_images(
             # Perform verification using old method
             verification_results = verifier.verify_car_images(reference_images, uploaded_images)
         
+        # Apply automatic rejection logic for low confidence
+        overall_result = verification_results["overall_result"]
+        weighted_similarity = overall_result.get("weighted_similarity", 0.0)
+        
+        # Auto-reject if weighted similarity is below 80% (Low confidence)
+        if weighted_similarity < 0.80:
+            final_result = "REJECTED"
+            overall_result["is_same_car"] = False
+            overall_result["auto_rejected"] = True
+            overall_result["rejection_reason"] = "Low verification accuracy - automatic rejection for reliability"
+            print(f"🚫 Auto-rejecting car: {weighted_similarity:.1%} similarity is below 80% threshold")
+        else:
+            final_result = "MATCH" if overall_result["is_same_car"] else "NO_MATCH"
+            overall_result["auto_rejected"] = False
+        
         # Save verification attempt to database
         verification_attempt = VerificationAttempt(
             car_model=model,
@@ -331,7 +346,7 @@ async def verify_car_images(
             back_similarity=json.dumps(verification_results.get("back", {})),
             left_similarity=json.dumps(verification_results.get("left", {})),
             right_similarity=json.dumps(verification_results.get("right", {})),
-            overall_result="MATCH" if verification_results["overall_result"]["is_same_car"] else "NO_MATCH",
+            overall_result=final_result,
             uploaded_front_path=uploaded_front,
             uploaded_back_path=uploaded_back,
             uploaded_left_path=uploaded_left,

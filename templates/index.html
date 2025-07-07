@@ -1111,8 +1111,9 @@
                         <label for="filterResult">✅ Result</label>
                         <select id="filterResult" onchange="applyFilters()">
                             <option value="">All Results</option>
-                            <option value="MATCH"> Match</option>
-                            <option value="NO_MATCH"> No Match</option>
+                            <option value="MATCH">✅ Match</option>
+                            <option value="NO_MATCH">❌ No Match</option>
+                            <option value="REJECTED">🚫 Rejected</option>
                         </select>
                     </div>
                     <div class="filter-group">
@@ -1320,17 +1321,22 @@
             let overallClass = 'danger';
             const weightedSimilarity = overall.weighted_similarity || overall.average_similarity || 0;
             
+            // Check for auto-rejection from backend
+            let isRejected = overall.auto_rejected || false;
+            
             // Determine confidence based on weighted similarity
             let confidence;
-            if (weightedSimilarity >= 0.85) {
+            
+            if (isRejected || weightedSimilarity < 0.80) {
+                confidence = 'Low';
+                overallClass = 'danger';
+                isRejected = true; // Ensure frontend also marks as rejected
+            } else if (weightedSimilarity >= 0.85) {
                 confidence = 'High';
                 overallClass = 'success';
             } else if (weightedSimilarity >= 0.80) {
                 confidence = 'Medium';
                 overallClass = 'warning';
-            } else {
-                confidence = 'Low';
-                overallClass = 'danger';
             }
             
             let html = `
@@ -1362,11 +1368,13 @@
                     </div>
                     
                     <div class="result-overall ${overallClass}">
-                        <h3>${weightedSimilarity >= 0.80 ? '✅ SAME CAR VERIFIED' : '❌ DIFFERENT CAR DETECTED'}</h3>
+                        <h3>${isRejected ? '🚫 CAR REJECTED - LOW ACCURACY' : (weightedSimilarity >= 0.85 ? '✅ SAME CAR VERIFIED' : '❌ DIFFERENT CAR DETECTED')}</h3>
+                        ${isRejected ? `<p><strong>⚠️ AUTOMATIC REJECTION:</strong> ${overall.rejection_reason || 'Verification accuracy too low for reliable identification'}</p>` : ''}
                         <p><strong>Weighted Similarity:</strong> ${(weightedSimilarity * 100).toFixed(2)}%</p>
                         <p><strong>Simple Average:</strong> ${((overall.average_similarity || 0) * 100).toFixed(2)}%</p>
-                        <p><strong>Confidence Level:</strong> ${confidence}</p>
+                        <p><strong>Confidence Level:</strong> ${confidence}${isRejected ? ' (Below 80% threshold)' : ''}</p>
                         <p><strong>AI Architecture:</strong> ${overall.model_architecture || 'InceptionV3 with Global Average Pooling'}</p>
+                        ${isRejected ? '<p><strong>📋 Action Required:</strong> Please upload clearer images, check lighting conditions, or verify the car model/year selection</p>' : ''}
                     </div>
                     
                     <div class="sides-grid">

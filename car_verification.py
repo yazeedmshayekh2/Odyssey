@@ -1074,7 +1074,7 @@ class CarImageVerifier:
             overall_confidence = "Low"
         
         # Enhanced matching logic: Consider same car if weighted similarity >= 80% even if some sides fail
-        weighted_threshold = 0.80
+        weighted_threshold = 0.85
         is_same_car_weighted = weighted_similarity >= weighted_threshold
         is_same_car_traditional = all_matches and weighted_similarity >= self.SIMILARITY_THRESHOLD
         
