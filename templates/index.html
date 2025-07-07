@@ -357,32 +357,57 @@
         }
         
         .confidence-badge {
-            padding: 5px 15px;
+            display: inline-block;
+            padding: 6px 12px;
             border-radius: 20px;
-            font-size: 12px;
+            font-size: 14px;
             font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            margin: 8px 0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
         }
-        
-        .confidence-high {
-            background: #d4edda;
-            color: #155724;
+
+        .confidence-badge.high-confidence {
+            background-color: #28a745;  /* Solid green */
+            color: white;
+            border: none;
+            box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
         }
-        
-        .confidence-medium {
-            background: #fff3cd;
-            color: #856404;
+
+        .confidence-badge.medium-confidence {
+            background-color: #ffc107;  /* Solid yellow */
+            color: #212529;
+            border: none;
+            box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
         }
-        
-        .confidence-low {
-            background: #f8d7da;
-            color: #721c24;
+
+        .confidence-badge.low-confidence {
+            background-color: #dc3545;  /* Solid red */
+            color: white;
+            border: none;
+            box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
         }
-        
-        .confidence-very-high {
-            background: #d1ecf1;
-            color: #0c5460;
+
+        /* Hover effects */
+        .confidence-badge.high-confidence:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+        }
+
+        .confidence-badge.medium-confidence:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 193, 7, 0.4);
+        }
+
+        .confidence-badge.low-confidence:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+        }
+
+        /* Remove the old confidence classes */
+        .confidence-high, .confidence-medium, .confidence-low, .confidence-very-high {
+            display: none;
         }
         
         .similarity-score {
@@ -816,6 +841,78 @@
                 grid-template-columns: 1fr;
             }
         }
+        
+        .high-confidence {
+            background-color: rgba(40, 167, 69, 0.2);  /* Green */
+            border: 2px solid rgba(40, 167, 69, 0.8);
+            color: #155724;
+        }
+        
+        .medium-confidence {
+            background-color: rgba(255, 193, 7, 0.2);  /* Yellow */
+            border: 2px solid rgba(255, 193, 7, 0.8);
+            color: #856404;
+        }
+        
+        .low-confidence {
+            background-color: rgba(220, 53, 69, 0.2);  /* Red */
+            border: 2px solid rgba(220, 53, 69, 0.8);
+            color: #721c24;
+        }
+        
+        /* Result container styles */
+        .result-container {
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .result-container h2 {
+            margin-bottom: 15px;
+        }
+        
+        .similarity-info {
+            font-size: 1.1em;
+            line-height: 1.5;
+        }
+        
+        /* Side result styles */
+        .side-result {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        
+        .side-result.match {
+            background-color: rgba(40, 167, 69, 0.1);  /* Green */
+            border: 2px solid rgba(40, 167, 69, 0.8);
+        }
+        
+        .side-result.warning {
+            background-color: rgba(255, 193, 7, 0.1);  /* Yellow */
+            border: 2px solid rgba(255, 193, 7, 0.8);
+        }
+        
+        .side-result.no-match {
+            background-color: rgba(220, 53, 69, 0.1);  /* Red */
+            border: 2px solid rgba(220, 53, 69, 0.8);
+        }
+        
+        .result-overall.success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);  /* Green gradient */
+            color: white;
+        }
+        
+        .result-overall.warning {
+            background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);  /* Yellow gradient */
+            color: #212529;
+        }
+        
+        .result-overall.danger {
+            background: linear-gradient(135deg, #dc3545 0%, #e83e8c 100%);  /* Red gradient */
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -1046,8 +1143,8 @@
                         <label for="filterResult">✅ Result</label>
                         <select id="filterResult" onchange="applyFilters()">
                             <option value="">All Results</option>
-                            <option value="MATCH">✓ Match</option>
-                            <option value="NO_MATCH">✗ No Match</option>
+                            <option value="MATCH"> Match</option>
+                            <option value="NO_MATCH"> No Match</option>
                         </select>
                     </div>
                     <div class="filter-group">
@@ -1253,11 +1350,19 @@
             }
             
             let overallClass = 'danger';
-            const confidence = overall.confidence || 'Low';
-            if (confidence === 'Very High' || confidence === 'High') {
+            const weightedSimilarity = overall.weighted_similarity || overall.average_similarity || 0;
+            
+            // Determine confidence based on weighted similarity
+            let confidence;
+            if (weightedSimilarity >= 0.85) {
+                confidence = 'High';
                 overallClass = 'success';
-            } else if (confidence === 'Medium') {
+            } else if (weightedSimilarity >= 0.80) {
+                confidence = 'Medium';
                 overallClass = 'warning';
+            } else {
+                confidence = 'Low';
+                overallClass = 'danger';
             }
             
             let html = `
@@ -1270,12 +1375,12 @@
                         <h4>🧠 ${overall.detection_method}</h4>
                         <div class="detection-metrics">
                             <div class="metric">
-                                <div class="metric-label">Similarity</div>
-                                <div class="metric-value">${((overall.average_similarity || 0) * 100).toFixed(1)}%</div>
+                                <div class="metric-label">Weighted Similarity</div>
+                                <div class="metric-value">${(weightedSimilarity * 100).toFixed(1)}%</div>
                             </div>
                             <div class="metric">
-                                <div class="metric-label">Threshold</div>
-                                <div class="metric-value">${((overall.similarity_threshold || 0.88) * 100).toFixed(0)}%</div>
+                                <div class="metric-label">Weighted Threshold</div>
+                                <div class="metric-value">${overall.similarity_thresholds && overall.similarity_thresholds.weighted_threshold ? (overall.similarity_thresholds.weighted_threshold * 100).toFixed(0) : 80}%</div>
                             </div>
                             <div class="metric">
                                 <div class="metric-label">Matched Sides</div>
@@ -1289,10 +1394,11 @@
                     </div>
                     
                     <div class="result-overall ${overallClass}">
-                        <h3>${overall.is_same_car ? '✅ SAME CAR VERIFIED' : '❌ DIFFERENT CAR DETECTED'}</h3>
-                        <p><strong>Overall Similarity:</strong> ${((overall.average_similarity || 0) * 100).toFixed(2)}%</p>
+                        <h3>${weightedSimilarity >= 0.80 ? '✅ SAME CAR VERIFIED' : '❌ DIFFERENT CAR DETECTED'}</h3>
+                        <p><strong>Weighted Similarity:</strong> ${(weightedSimilarity * 100).toFixed(2)}%</p>
+                        <p><strong>Simple Average:</strong> ${((overall.average_similarity || 0) * 100).toFixed(2)}%</p>
                         <p><strong>Confidence Level:</strong> ${confidence}</p>
-                        <p><strong>AI Architecture:</strong> ${overall.model_architecture || 'OSNet_x1_0 with GeM pooling'}</p>
+                        <p><strong>AI Architecture:</strong> ${overall.model_architecture || 'InceptionV3 with Global Average Pooling'}</p>
                     </div>
                     
                     <div class="sides-grid">
@@ -1302,18 +1408,33 @@
             sides.forEach(side => {
                 if (results[side]) {
                     const sideResult = results[side];
-                    const matchClass = sideResult.is_match ? 'match' : 'no-match';
-                    const sideConfidence = sideResult.confidence || 'Low';
-                    const confidenceClass = getConfidenceClass(sideConfidence);
+                    const sideSimilarity = sideResult.combined_similarity || sideResult.cosine_similarity || sideResult.overall_similarity || 0;
                     
-                    // Get primary similarity score (combined if available, otherwise cosine)
-                    const primarySimilarity = sideResult.combined_similarity || sideResult.cosine_similarity || sideResult.overall_similarity || 0;
+                    // Determine side confidence based on similarity
+                    let sideConfidence;
+                    let matchClass;
+                    let confidenceIcon;
+                    if (sideSimilarity >= 0.85) {
+                        sideConfidence = 'High';
+                        matchClass = 'match';
+                        confidenceIcon = '✓';
+                    } else if (sideSimilarity >= 0.80) {
+                        sideConfidence = 'Medium';
+                        matchClass = 'warning';
+                        confidenceIcon = '⚠';
+                    } else {
+                        sideConfidence = 'Low';
+                        matchClass = 'no-match';
+                        confidenceIcon = '✗';
+                    }
+                    
+                    const confidenceClass = getConfidenceClass(sideSimilarity);
                     
                     html += `
                         <div class="side-result ${matchClass}">
                             <div class="side-title">${side} View</div>
-                            <div class="similarity-score">${(primarySimilarity * 100).toFixed(1)}%</div>
-                            <div class="confidence-badge ${confidenceClass}">${sideConfidence} Confidence</div>
+                            <div class="similarity-score">${(sideSimilarity * 100).toFixed(1)}%</div>
+                            <div class="confidence-badge ${confidenceClass}">${confidenceIcon} ${sideConfidence} CONFIDENCE</div>
                             
                             ${sideResult.reference_car_detected || sideResult.upload_car_detected ? `
                                 <div style="margin-top: 10px; font-size: 12px; color: #6c757d;">
@@ -1332,23 +1453,10 @@
                                     if (!method) return '#6c757d';
                                     if (typeof method === 'string') {
                                         return method.includes('NO PREPROCESSING') ? '#dc3545' : '#6c757d';
-                                    } else if (typeof method === 'object' && method !== null) {
-                                        const uploadMethod = String(method.upload || '');
-                                        return uploadMethod.includes('NO PREPROCESSING') ? '#dc3545' : '#6c757d';
                                     }
                                     return '#6c757d';
-                                })()};">
-                                    ${(() => {
-                                        // Safe processing method display - v2.0
-                                        const method = sideResult.processing_method;
-                                        if (!method) return 'Unknown processing method';
-                                        if (typeof method === 'string') {
-                                            return method;
-                                        } else if (typeof method === 'object' && method !== null) {
-                                            return String(method.upload || 'Unknown processing method');
-                                        }
-                                        return 'Unknown processing method';
-                                    })()}
+                                })()}">
+                                    ${sideResult.processing_method}
                                 </div>
                             ` : ''}
                             
@@ -1395,8 +1503,12 @@
                         <strong>🔬 Technical Details:</strong><br>
                         • <strong>AI Model:</strong> ${overall.model_architecture || 'OSNet_x1_0 with GeM pooling'}<br>
                         • <strong>Detection Method:</strong> ${overall.detection_method || 'OSNet (Omni-Scale Network) + YOLOv11 + GeM Pooling'}<br>
-                        • <strong>Similarity Threshold:</strong> ${((overall.similarity_threshold || 0.88) * 100)}% for positive match<br>
-                        • <strong>Processing:</strong> YOLOv11 car detection + OSNet feature extraction + GeM pooling
+                        • <strong>Individual Thresholds:</strong> ${((overall.similarity_threshold || 0.88) * 100)}% per side<br>
+                        • <strong>Weighted Threshold:</strong> ${overall.similarity_thresholds && overall.similarity_thresholds.weighted_threshold ? (overall.similarity_thresholds.weighted_threshold * 100) : 80}% overall<br>
+                        • <strong>Processing:</strong> YOLOv11 car detection + OSNet feature extraction + GeM pooling<br>
+                        ${overall.view_weights ? `• <strong>View Weights:</strong> Front ${(overall.view_weights.front * 100)}%, Back ${(overall.view_weights.back * 100)}%, Left ${(overall.view_weights.left * 100)}%, Right ${(overall.view_weights.right * 100)}%<br>` : ''}
+                        ${overall.weighting_explanation ? `• <strong>Weighting Logic:</strong> ${overall.weighting_explanation}<br>` : ''}
+                        ${overall.matching_logic ? `• <strong>Matching Logic:</strong> ${overall.matching_logic}` : ''}
                     </div>
                 </div>
             `;
@@ -1405,20 +1517,13 @@
         }
 
         // Get confidence class for styling
-        function getConfidenceClass(confidence) {
-            if (!confidence || typeof confidence !== 'string') {
-                return 'confidence-low';
-            }
-            
-            switch(confidence.toLowerCase()) {
-                case 'very high':
-                    return 'confidence-very-high';
-                case 'high':
-                    return 'confidence-high';
-                case 'medium':
-                    return 'confidence-medium';
-                default:
-                    return 'confidence-low';
+        function getConfidenceClass(similarity) {
+            if (similarity >= 0.85) {
+                return 'high-confidence';
+            } else if (similarity >= 0.80) {
+                return 'medium-confidence';
+            } else {
+                return 'low-confidence';
             }
         }
 
@@ -1670,8 +1775,8 @@
             
             // Add test cases
             testCases.forEach(testCase => {
-                const similarityClass = testCase.average_similarity >= 0.8 ? 'similarity-high' : 
-                                      testCase.average_similarity >= 0.7 ? 'similarity-medium' : 'similarity-low';
+                const similarityClass = testCase.average_similarity >= 0.85 ? 'similarity-high' : 
+                                      testCase.average_similarity >= 0.80 ? 'similarity-medium' : 'similarity-low';
                 
                 html += `
                     <div class="test-case-item" data-case-id="${testCase.id}" 
@@ -2028,7 +2133,104 @@
                 showAlert(`❌ Error deleting test case: ${error.message}`, 'error');
             }
         }
+ 
+        // Update verification result display
+        function updateVerificationResult(data) {
+            const resultContainer = document.getElementById('verificationResult');
+            if (!resultContainer) return;
+ 
+            // Determine overall confidence class based on weighted similarity
+            const confidenceClass = getConfidenceClass(data.weighted_similarity);
+            const confidenceText = getConfidenceText(data.weighted_similarity);
+            
+            // Format similarity percentages
+            const weightedSimilarity = (data.weighted_similarity * 100).toFixed(2) + '%';
+            const simpleAverage = (data.simple_average * 100).toFixed(2) + '%';
+            
+            // Determine match status text and icon
+            const matchStatus = data.weighted_similarity >= 0.85 ? 'SAME CAR VERIFIED' : 'DIFFERENT CAR DETECTED';
+            const matchIcon = data.weighted_similarity >= 0.85 ? '✓' : '✗';
+ 
+            // Create result HTML
+            const resultHTML = `
+                <div class="result-container ${confidenceClass}">
+                    <h2>${matchIcon} ${matchStatus}</h2>
+                    <div class="similarity-info">
+                        <p>Weighted Similarity: ${weightedSimilarity}</p>
+                        <p>Simple Average: ${simpleAverage}</p>
+                        <p>Confidence Level: ${confidenceText}</p>
+                        <p>AI Architecture: ${data.model_architecture || 'InceptionV3 with Global Average Pooling for feature extraction'}</p>
+                    </div>
+                </div>
+            `;
+            
+            resultContainer.innerHTML = resultHTML;
+        }
+ 
+        // Get confidence text based on similarity value
+        function getConfidenceText(similarity) {
+            if (similarity >= 0.85) {
+                return 'High';
+            } else if (similarity >= 0.80) {
+                return 'Medium';
+            } else {
+                return 'Low';
+            }
+        }
+ 
+        // Get confidence class for styling
+        function getConfidenceClass(similarity) {
+            if (similarity >= 0.85) {
+                return 'high-confidence';
+            } else if (similarity >= 0.80) {
+                return 'medium-confidence';
+            } else {
+                return 'low-confidence';
+            }
+        }
+ 
+        // Function to update side view results
+        function updateSideView(viewName, data) {
+            const sideContainer = document.getElementById(`${viewName}View`);
+            if (!sideContainer || !data) return;
+ 
+            const similarity = data.similarity || 0;
+            const confidenceClass = getConfidenceClass(similarity);
+            const similarityPercent = (similarity * 100).toFixed(1) + '%';
+            
+            const sideHTML = `
+                <div class="side-result ${confidenceClass}">
+                    <h3>${viewName} View</h3>
+                    <div class="similarity-value">${similarityPercent}</div>
+                    <div class="confidence-badge ${confidenceClass}">
+                        ${getConfidenceText(similarity)} CONFIDENCE
+                    </div>
+                    <div class="processing-info">
+                        <p>Reference: ${data.reference_type || 'Full Image'}</p>
+                        <p>Upload: ${data.upload_type || 'Car Detected'}</p>
+                    </div>
+                    <div class="model-info">
+                        <p>${data.model_used || 'InceptionV3 + Weighted Processing'}</p>
+                    </div>
+                    <div class="visualization-container">
+                        ${data.detection_visualization ? `
+                            <div class="vis-section">
+                                <h4>Car Detection</h4>
+                                <img src="${data.detection_visualization}" alt="Detection visualization">
+                            </div>
+                        ` : ''}
+                        ${data.preprocessed_visualization ? `
+                            <div class="vis-section">
+                                <h4>Preprocessed</h4>
+                                <img src="${data.preprocessed_visualization}" alt="Preprocessed visualization">
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+            
+            sideContainer.innerHTML = sideHTML;
+        }
     </script>
 </body>
 </html>
- 

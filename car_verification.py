@@ -11,11 +11,86 @@ from typing import Dict, Tuple, List, Union
 import os
 from ultralytics import YOLO
 import requests
+import random
+
+class ImageAugmenter:
+    """Handles realistic image augmentation for car verification"""
+    
+    @staticmethod
+    def add_gaussian_noise(image: np.ndarray, mean: float = 0, sigma: float = 15) -> np.ndarray:
+        """Add Gaussian noise to simulate sensor noise"""
+        if image.dtype != np.float32:
+            image = image.astype(np.float32) / 255.0
+        
+        noise = np.random.normal(mean, sigma / 255.0, image.shape)
+        noisy_image = image + noise
+        noisy_image = np.clip(noisy_image, 0, 1)
+        return (noisy_image * 255).astype(np.uint8)
+    
+    @staticmethod
+    def adjust_brightness(image: np.ndarray, factor: float) -> np.ndarray:
+        """Adjust image brightness to simulate different lighting conditions"""
+        pil_image = Image.fromarray(image)
+        enhancer = ImageEnhance.Brightness(pil_image)
+        adjusted = enhancer.enhance(factor)
+        return np.array(adjusted)
+    
+    @staticmethod
+    def adjust_contrast(image: np.ndarray, factor: float) -> np.ndarray:
+        """Adjust image contrast to simulate different lighting conditions"""
+        pil_image = Image.fromarray(image)
+        enhancer = ImageEnhance.Contrast(pil_image)
+        adjusted = enhancer.enhance(factor)
+        return np.array(adjusted)
+    
+    @staticmethod
+    def add_motion_blur(image: np.ndarray, kernel_size: int = 3) -> np.ndarray:
+        """Add motion blur to simulate camera movement"""
+        kernel = np.zeros((kernel_size, kernel_size))
+        kernel[int((kernel_size-1)/2), :] = np.ones(kernel_size)
+        kernel = kernel / kernel_size
+        blurred = cv2.filter2D(image, -1, kernel)
+        return blurred
+    
+    @staticmethod
+    def add_jpeg_compression(image: np.ndarray, quality: int = 90) -> np.ndarray:
+        """Simulate JPEG compression artifacts"""
+        encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), quality]
+        _, encoded = cv2.imencode('.jpg', image, encode_param)
+        decoded = cv2.imdecode(encoded, cv2.IMREAD_COLOR)
+        return decoded
+    
+    @staticmethod
+    def apply_realistic_augmentation(image: np.ndarray, is_reference: bool = False) -> np.ndarray:
+        """Apply a combination of realistic augmentations"""
+        if is_reference:
+            # For reference images, apply mild augmentations
+            if random.random() < 0.5:
+                image = ImageAugmenter.add_gaussian_noise(image, sigma=10)
+            if random.random() < 0.3:
+                image = ImageAugmenter.adjust_brightness(image, random.uniform(0.9, 1.1))
+            if random.random() < 0.3:
+                image = ImageAugmenter.adjust_contrast(image, random.uniform(0.9, 1.1))
+        else:
+            # For uploaded images, apply more aggressive augmentations
+            if random.random() < 0.7:
+                image = ImageAugmenter.add_gaussian_noise(image, sigma=15)
+            if random.random() < 0.5:
+                image = ImageAugmenter.adjust_brightness(image, random.uniform(0.8, 1.2))
+            if random.random() < 0.5:
+                image = ImageAugmenter.adjust_contrast(image, random.uniform(0.8, 1.2))
+            if random.random() < 0.3:
+                image = ImageAugmenter.add_motion_blur(image)
+            if random.random() < 0.4:
+                image = ImageAugmenter.add_jpeg_compression(image, quality=random.randint(85, 95))
+        
+        return image
 
 class StanfordCarsFeatureExtractor:
     """Feature extractor using InceptionV3 trained on Stanford Cars Dataset"""
     
     def __init__(self, weights_path: str = 'stanford_cars_feature_extractor.pth'):
+        """Initialize the feature extractor with Stanford Cars weights"""
         print("🚀 Initializing Stanford Cars Feature Extractor...")
         
         try:
@@ -59,17 +134,119 @@ class StanfordCarsFeatureExtractor:
         except Exception as e:
             print(f"⚠️ Error initializing model: {e}")
             self.model = None
+
+        # Define scales for multi-scale testing
+        self.scales = [
+            (256, 256),  # Smaller scale for fine details
+            (299, 299),  # Native InceptionV3 resolution
+            (320, 320),  # Larger scale for context
+        ]
         
-        # Image preprocessing pipeline (matches InceptionV3 training)
-        self.transform = transforms.Compose([
-            transforms.Resize((299, 299)),  # InceptionV3 requires 299x299 input
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], 
-                               std=[0.229, 0.224, 0.225])
-        ])
-    
+        # Define geometric augmentations
+        self.geometric_augmentations = [
+            {'flip': False, 'rotate': 0, 'crop': 1.0},  # Original
+            {'flip': True, 'rotate': 0, 'crop': 1.0},   # Horizontal flip
+            {'flip': False, 'rotate': 5, 'crop': 0.95}, # Slight clockwise rotation + crop
+            {'flip': False, 'rotate': -5, 'crop': 0.95},# Slight counter-clockwise rotation + crop
+            {'flip': False, 'rotate': 0, 'crop': 0.9},  # Center crop
+        ]
+
+        # Define color augmentations
+        self.color_augmentations = [
+            {'brightness': 1.0, 'contrast': 1.0, 'saturation': 1.0, 'channel_order': 'RGB'},  # Original
+            {'brightness': 1.1, 'contrast': 1.0, 'saturation': 1.0, 'channel_order': 'RGB'},  # Brighter
+            {'brightness': 0.9, 'contrast': 1.0, 'saturation': 1.0, 'channel_order': 'RGB'},  # Darker
+            {'brightness': 1.0, 'contrast': 1.1, 'saturation': 1.0, 'channel_order': 'RGB'},  # Higher contrast
+            {'brightness': 1.0, 'contrast': 1.0, 'saturation': 1.2, 'channel_order': 'RGB'},  # More saturated
+            {'brightness': 1.0, 'contrast': 1.0, 'saturation': 0.8, 'channel_order': 'RGB'},  # Less saturated
+            {'brightness': 1.0, 'contrast': 1.0, 'saturation': 1.0, 'channel_order': 'BGR'},  # BGR channel order
+        ]
+        
+        # Base transform without resize or color normalization
+        self.base_transform = transforms.ToTensor()
+
+        # Color normalization as separate step (after augmentations)
+        self.normalize = transforms.Normalize(
+            mean=[0.485, 0.456, 0.406], 
+            std=[0.229, 0.224, 0.225]
+        )
+
+    def apply_geometric_augmentation(self, pil_image: Image.Image, aug_params: Dict) -> Image.Image:
+        """Apply geometric augmentations to an image"""
+        try:
+            img = pil_image
+            
+            # Get original size
+            w, h = img.size
+            
+            # Apply center crop if specified
+            if aug_params['crop'] < 1.0:
+                crop_size = (int(w * aug_params['crop']), int(h * aug_params['crop']))
+                left = (w - crop_size[0]) // 2
+                top = (h - crop_size[1]) // 2
+                right = left + crop_size[0]
+                bottom = top + crop_size[1]
+                img = img.crop((left, top, right, bottom))
+            
+            # Apply rotation if specified
+            if aug_params['rotate'] != 0:
+                img = img.rotate(aug_params['rotate'], expand=True, resample=Image.BILINEAR)
+            
+            # Apply horizontal flip if specified
+            if aug_params['flip']:
+                img = img.transpose(Image.FLIP_LEFT_RIGHT)
+            
+            return img
+            
+        except Exception as e:
+            print(f"⚠️ Error applying geometric augmentation: {str(e)}")
+            return pil_image
+
+    def apply_color_augmentation(self, image: torch.Tensor, aug_params: Dict) -> torch.Tensor:
+        """Apply color space augmentations to a tensor image"""
+        try:
+            # Start with channel order adjustment
+            if aug_params['channel_order'] == 'BGR':
+                image = image.flip(0)  # Flip RGB to BGR
+            
+            # Convert to PIL for color adjustments
+            img_pil = transforms.ToPILImage()(image)
+            
+            # Apply color adjustments
+            if aug_params['brightness'] != 1.0:
+                enhancer = ImageEnhance.Brightness(img_pil)
+                img_pil = enhancer.enhance(aug_params['brightness'])
+            
+            if aug_params['contrast'] != 1.0:
+                enhancer = ImageEnhance.Contrast(img_pil)
+                img_pil = enhancer.enhance(aug_params['contrast'])
+            
+            if aug_params['saturation'] != 1.0:
+                enhancer = ImageEnhance.Color(img_pil)
+                img_pil = enhancer.enhance(aug_params['saturation'])
+            
+            # Convert back to tensor
+            return transforms.ToTensor()(img_pil)
+            
+        except Exception as e:
+            print(f"⚠️ Error applying color augmentation: {str(e)}")
+            return image
+
+    def extract_features_single_scale(self, image_tensor: torch.Tensor) -> np.ndarray:
+        """Extract features at a single scale"""
+        try:
+            with torch.no_grad():
+                features = self.model(image_tensor.unsqueeze(0).to(self.device))
+                features = features.flatten().cpu().numpy()
+                # Normalize features
+                features = features / np.linalg.norm(features)
+                return features
+        except Exception as e:
+            print(f"Error extracting features at scale: {str(e)}")
+            return None
+
     def extract_features(self, image_array: np.ndarray) -> np.ndarray:
-        """Extract features from an image using InceptionV3"""
+        """Extract features using multi-scale, multi-augmentation approach with color variations"""
         try:
             if self.model is None:
                 return None
@@ -83,20 +260,71 @@ class StanfordCarsFeatureExtractor:
             # Convert to PIL Image
             pil_image = Image.fromarray(image_rgb.astype(np.uint8))
             
-            # Apply transformations
-            input_tensor = self.transform(pil_image).unsqueeze(0)
-            input_tensor = input_tensor.to(self.device)
+            # Store all features from different scales and augmentations
+            all_features = []
             
-            # Extract features
-            with torch.no_grad():
-                features = self.model(input_tensor)
-                features = features.flatten().cpu().numpy()
+            # For each scale
+            for scale_idx, scale in enumerate(self.scales):
+                print(f"📏 Processing scale {scale_idx + 1}/{len(self.scales)}: {scale}")
+                
+                # For each geometric augmentation
+                for geo_idx, geo_params in enumerate(self.geometric_augmentations):
+                    # Apply geometric augmentation
+                    geo_augmented = self.apply_geometric_augmentation(pil_image, geo_params)
+                    
+                    # Create transform for this scale
+                    scale_transform = transforms.Resize(scale)
+                    
+                    # Apply scaling
+                    scaled_image = scale_transform(geo_augmented)
+                    
+                    # Convert to tensor (but don't normalize yet)
+                    image_tensor = self.base_transform(scaled_image)
+                    
+                    # For each color augmentation
+                    for color_idx, color_params in enumerate(self.color_augmentations):
+                        # Apply color augmentation
+                        augmented_tensor = self.apply_color_augmentation(image_tensor, color_params)
+                        
+                        # Apply normalization
+                        normalized_tensor = self.normalize(augmented_tensor)
+                        
+                        # Extract features
+                        features = self.extract_features_single_scale(normalized_tensor)
+                        if features is not None:
+                            all_features.append(features)
+                            
+                            # Build augmentation description
+                            geo_desc = []
+                            if geo_params['flip']: geo_desc.append('flipped')
+                            if geo_params['rotate'] != 0: geo_desc.append(f'rotated {geo_params["rotate"]}°')
+                            if geo_params['crop'] < 1.0: geo_desc.append(f'cropped {int(geo_params["crop"]*100)}%')
+                            geo_desc = ' + '.join(geo_desc) if geo_desc else 'original geometry'
+                            
+                            color_desc = []
+                            if color_params['brightness'] != 1.0: 
+                                color_desc.append(f'brightness {int(color_params["brightness"]*100)}%')
+                            if color_params['contrast'] != 1.0: 
+                                color_desc.append(f'contrast {int(color_params["contrast"]*100)}%')
+                            if color_params['saturation'] != 1.0: 
+                                color_desc.append(f'saturation {int(color_params["saturation"]*100)}%')
+                            if color_params['channel_order'] != 'RGB':
+                                color_desc.append(f'{color_params["channel_order"]} channels')
+                            color_desc = ' + '.join(color_desc) if color_desc else 'original colors'
+                            
+                            print(f"  ✨ Variant {len(all_features)}: {geo_desc} | {color_desc}")
             
-            # Normalize features
-            features = features / np.linalg.norm(features)
+            if not all_features:
+                return None
             
-            print(f"🧠 Extracted {len(features)}-dimensional feature vector")
-            return features
+            # Average features from all variants
+            avg_features = np.mean(all_features, axis=0)
+            # Normalize averaged features
+            avg_features = avg_features / np.linalg.norm(avg_features)
+            
+            total_variants = len(self.scales) * len(self.geometric_augmentations) * len(self.color_augmentations)
+            print(f"🧠 Extracted {len(avg_features)}-dimensional feature vector (averaged across {total_variants} variants)")
+            return avg_features
             
         except Exception as e:
             print(f"Error extracting features: {str(e)}")
@@ -118,12 +346,22 @@ class CarImageVerifier:
         self.feature_extractor = StanfordCarsFeatureExtractor()
         
         # Similarity thresholds
-        self.SIMILARITY_THRESHOLD = 0.80  # Base threshold for deep learning features
-        self.BACK_SIMILARITY_THRESHOLD = 0.75  # Lower threshold for back view (more variation)
+        self.SIMILARITY_THRESHOLD = 0.85  # Base threshold for deep learning features
+        self.BACK_SIMILARITY_THRESHOLD = 0.80  # Lower threshold for back view (more variation)
         self.CAR_CONFIDENCE_THRESHOLD = 0.5  # Minimum confidence for car detection
         
         # Car class IDs in COCO dataset (used by YOLO)
         self.CAR_CLASS_IDS = [2, 3, 5, 7]  # car, motorcycle, bus, truck
+        
+        # View weights for weighted similarity calculation
+        # Front and back views are more distinctive, left and right are more similar across cars
+        self.VIEW_WEIGHTS = {
+            "front": 0.35,  # 35% weight - most distinctive view
+            "back": 0.35,   # 35% weight - second most distinctive view
+            "left": 0.15,   # 15% weight - side views are more similar across cars
+            "right": 0.15   # 15% weight - side views are more similar across cars
+        }
+        # Total weights sum to 1.0: 0.35 + 0.35 + 0.15 + 0.15 = 1.0
         
         # Initialize requests session for URL downloads
         self.session = requests.Session()
@@ -349,12 +587,14 @@ class CarImageVerifier:
     
     def preprocess_image(self, image_array: np.ndarray, is_reference: bool = False, view_type: str = None) -> np.ndarray:
         """
-        Enhanced image preprocessing that preserves original colors.
+        Enhanced image preprocessing that preserves original colors and adds realistic noise.
         For reference (database) images:
             - Applies basic resizing and normalization
-            - No color modifications
+            - Adds slight noise (except for front view)
+            - Applies slight blur
+            - Matches histogram to a template
         For uploaded images:
-            - Only converts BGR to RGB if needed
+            - Only converts BGR to RGB
         """
         try:
             print("📷 Applying preprocessing...")
@@ -365,26 +605,40 @@ class CarImageVerifier:
                 print("🔄 Converted BGR to RGB format")
             else:
                 image_rgb = image_array
-                print("⚠️ Image is not in BGR format, using as is")
             
-            # Basic preprocessing without color modifications
             if is_reference:
-                # Ensure image is float32 and normalized to [0, 1]
-                image_processed = image_rgb.astype(np.float32) / 255.0
+                print("🎨 Applying enhanced preprocessing for reference image...")
                 
-                # Apply very mild Gaussian blur only to reference images (0.5 sigma)
-                if view_type != "front":  # Skip blur for front view
-                    image_processed = cv2.GaussianBlur(image_processed, (3, 3), 0.5)
+                # Convert to LAB color space
+                lab = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2LAB)
+                l, a, b = cv2.split(lab)
                 
-                # Convert back to uint8 for visualization
-                image_processed = (image_processed * 255).astype(np.uint8)
-            else:
-                # For uploaded images, just normalize
-                image_processed = image_rgb.astype(np.float32) / 255.0
-                image_processed = (image_processed * 255).astype(np.uint8)
+                # Apply CLAHE (Contrast Limited Adaptive Histogram Equalization) to L channel
+                clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+                l_eq = clahe.apply(l)
+                
+                # Merge channels back
+                lab_eq = cv2.merge([l_eq, a, b])
+                image_eq = cv2.cvtColor(lab_eq, cv2.COLOR_LAB2RGB)
+                
+                # Apply noise reduction to front view
+                if view_type == "front":
+                    # Apply denoising to preserve front details
+                    image_processed = cv2.fastNlMeansDenoisingColored(image_eq, None, 10, 10, 7, 21)
+                    print("✅ Applied histogram equalization and denoising for front view")
+                else:
+                    # Add slight Gaussian noise for other views
+                    noise = np.random.normal(0, 1, image_eq.shape).astype(np.uint8)  # Reduced noise intensity
+                    image_noisy = cv2.add(image_eq, noise)
+            
+                    # Apply slight Gaussian blur
+                    image_processed = cv2.GaussianBlur(image_noisy, (3,3), 0.5)
+                    print("✅ Applied histogram equalization, noise, and blur")
+                
+                return image_processed
             
             print("✅ Basic preprocessing completed")
-            return image_processed
+            return image_rgb
             
         except Exception as e:
             print(f"⚠️ Error in preprocessing: {str(e)}")
@@ -531,6 +785,27 @@ class CarImageVerifier:
             print(f"Error calculating cosine similarity: {str(e)}")
             return 0.0
     
+    def calculate_weighted_similarity(self, similarities: Dict[str, float], valid_sides: List[str]) -> float:
+        """Calculate weighted similarity score based on available views"""
+        try:
+            if not similarities or not valid_sides:
+                return 0.0
+            
+            # Normalize weights for available sides
+            total_weight = sum(self.VIEW_WEIGHTS[side] for side in valid_sides)
+            if total_weight == 0:
+                return 0.0
+            
+            # Calculate weighted sum
+            weighted_sum = sum(similarities[side] * (self.VIEW_WEIGHTS[side] / total_weight) 
+                             for side in valid_sides)
+            
+            return weighted_sum
+            
+        except Exception as e:
+            print(f"Error calculating weighted similarity: {str(e)}")
+            return 0.0
+    
     def compare_images(self, reference_path: str, uploaded_path: str) -> Dict:
         """Compare two images using YOLOv11 detection and InceptionV3 features with advanced preprocessing"""
         try:
@@ -569,9 +844,9 @@ class CarImageVerifier:
             is_match = similarity >= threshold
             
             # Determine confidence level
-            if similarity >= 0.8:
+            if similarity >= 0.85:
                 confidence = 'High'
-            elif similarity >= 0.75:
+            elif similarity >= 0.80:
                 confidence = 'Medium'
             else:
                 confidence = 'Low'
@@ -613,78 +888,68 @@ class CarImageVerifier:
             }
     
     def verify_car_images(self, reference_images: Dict[str, str], uploaded_images: Dict[str, str]) -> Dict:
-        """Verify all four sides of the car using deep learning models"""
-        results = {}
-        sides = ["front", "back", "left", "right"]
-        
-        all_matches = True
-        total_similarity = 0.0
-        valid_comparisons = 0
-        
-        print("🚀 Starting car verification with YOLOv11 + InceptionV3 + Basic Processing...")
-        
-        for side in sides:
-            print(f"📷 Processing {side} view...")
+        """Verify if uploaded car images match the reference car images"""
+        try:
+            print("🚀 Starting car verification with weighted processing...")
             
-            if side in reference_images and side in uploaded_images:
-                if os.path.exists(reference_images[side]) and os.path.exists(uploaded_images[side]):
-                    comparison = self.compare_images(reference_images[side], uploaded_images[side])
-                    results[side] = comparison
-                    
-                    if not comparison["is_match"]:
-                        all_matches = False
-                    
-                    total_similarity += comparison["cosine_similarity"]
-                    valid_comparisons += 1
-                else:
-                    results[side] = {
-                        "error": f"Image file not found for {side}",
-                        "is_match": False,
-                        "cosine_similarity": 0.0,
-                        "confidence": "Low",
-                        "model_used": "InceptionV3 + Basic Processing + YOLOv11"
-                    }
-                    all_matches = False
-            else:
-                results[side] = {
-                    "error": f"Missing {side} image",
-                    "is_match": False,
-                    "cosine_similarity": 0.0,
-                    "confidence": "Low",
-                    "model_used": "InceptionV3 + Basic Processing + YOLOv11"
+            # Process each view
+            similarities = {}
+            processing_results = {}
+            
+            for view in ['front', 'back', 'left', 'right']:
+                if view in reference_images and view in uploaded_images:
+                    result = self.compare_images(reference_images[view], uploaded_images[view])
+                    if result['similarity'] is not None:
+                        similarities[view] = result['similarity']
+                        processing_results[view] = result
+            
+            if not similarities:
+                return {
+                    'match': False,
+                    'weighted_similarity': 0.0,
+                    'simple_average': 0.0,
+                    'confidence': 'Low',
+                    'details': {},
+                    'error': 'No valid similarity scores computed'
                 }
-                all_matches = False
-        
-        # Calculate overall verification result
-        average_similarity = total_similarity / valid_comparisons if valid_comparisons > 0 else 0.0
-        
-        # Enhanced overall confidence
-        if average_similarity >= 0.85 and all_matches:
-            overall_confidence = "Very High"
-        elif average_similarity >= self.SIMILARITY_THRESHOLD and all_matches:
-            overall_confidence = "High"
-        elif average_similarity >= 0.75:
-            overall_confidence = "Medium"
-        else:
-            overall_confidence = "Low"
-        
-        results["overall_result"] = {
-            "is_same_car": all_matches and average_similarity >= self.SIMILARITY_THRESHOLD,
-            "average_similarity": round(average_similarity, 4),
-            "confidence": overall_confidence,
-            "matched_sides": sum(1 for side in sides if results.get(side, {}).get("is_match", False)),
-            "valid_comparisons": valid_comparisons,
-            "detection_method": "YOLOv11 + InceptionV3 + Basic Processing + Cosine Similarity",
-            "similarity_thresholds": {
-                "default": self.SIMILARITY_THRESHOLD,
-                "back": self.BACK_SIMILARITY_THRESHOLD
-            },
-            "model_architecture": "InceptionV3 with Global Average Pooling for feature extraction"
-        }
-        
-        print(f"✅ Verification complete! Average similarity: {average_similarity:.4f}")
-        
-        return results
+            
+            # Calculate weighted similarity
+            weighted_similarity = self.calculate_weighted_similarity(similarities, list(similarities.keys()))
+            
+            # Calculate simple average for comparison
+            simple_average = sum(similarities.values()) / len(similarities)
+            
+            # Determine confidence level based on weighted similarity
+            if weighted_similarity >= 0.85:
+                confidence = 'High'
+            elif weighted_similarity >= 0.80:
+                confidence = 'Medium'
+            else:
+                confidence = 'Low'
+            
+            # Determine if it's a match based on weighted similarity and confidence
+            is_match = weighted_similarity >= self.SIMILARITY_THRESHOLD
+            
+            print(f"✅ Verification complete! Weighted similarity: {weighted_similarity:.4f}, Simple average: {simple_average:.4f}")
+            
+            return {
+                'match': is_match,
+                'weighted_similarity': weighted_similarity,
+                'simple_average': simple_average,
+                'confidence': confidence,
+                'details': processing_results
+            }
+            
+        except Exception as e:
+            print(f"Error in car verification: {str(e)}")
+            return {
+                'match': False,
+                'weighted_similarity': 0.0,
+                'simple_average': 0.0,
+                'confidence': 'Low',
+                'details': {},
+                'error': str(e)
+            }
     
     def verify_with_stored_features(self, stored_reference_features: Dict[str, np.ndarray], uploaded_images: Dict[str, str], save_visualizations: bool = False, vis_dir: str = None) -> Dict:
         """
@@ -695,10 +960,10 @@ class CarImageVerifier:
         sides = ["front", "back", "left", "right"]
         
         all_matches = True
-        total_similarity = 0.0
-        valid_comparisons = 0
+        similarities = {}
+        valid_sides = []
         
-        print("🚀 Starting car verification with stored reference features...")
+        print("🚀 Starting car verification with stored reference features and weighted processing...")
         
         for side in sides:
             print(f"📷 Processing {side} view...")
@@ -720,7 +985,7 @@ class CarImageVerifier:
                             'upload_car_detected': upload_result.get('car_detected', False),
                             'upload_detection_confidence': upload_result.get('detection_confidence', 0.0),
                             'error': upload_result.get('error', 'Failed to extract features'),
-                            'model_used': 'InceptionV3 + Basic Processing + YOLOv11 (Stored Features)',
+                            'model_used': 'InceptionV3 + Weighted Processing + YOLOv11 (Stored Features)',
                             # Add visualization paths even for errors
                             'upload_detection_visualization': upload_result.get('detection_visualization'),
                             'upload_preprocessed_visualization': upload_result.get('preprocessed_visualization')
@@ -755,7 +1020,7 @@ class CarImageVerifier:
                         'upload_car_detected': upload_result.get('car_detected', False),
                         'upload_detection_confidence': round(upload_result.get('detection_confidence', 0.0), 3),
                         'upload_detections': upload_result.get('num_detections', 0),
-                        'model_used': 'InceptionV3 + Basic Processing + YOLOv11 (Stored Features)',
+                        'model_used': 'InceptionV3 + Weighted Processing + YOLOv11 (Stored Features)',
                         'processing_method': {
                             'reference': 'Pre-computed stored features',
                             'upload': upload_result.get('processing_method', 'Unknown')
@@ -768,8 +1033,9 @@ class CarImageVerifier:
                     if not is_match:
                         all_matches = False
                     
-                    total_similarity += similarity
-                    valid_comparisons += 1
+                    # Store similarity for weighted calculation
+                    similarities[side] = similarity
+                    valid_sides.append(side)
                     
                 else:
                     error_msg = "Missing stored reference features" if ref_features is None else f"Upload image file not found for {side}"
@@ -791,35 +1057,50 @@ class CarImageVerifier:
                 }
                 all_matches = False
         
-        # Calculate overall verification result
-        average_similarity = total_similarity / valid_comparisons if valid_comparisons > 0 else 0.0
+        # Calculate weighted similarity instead of simple average
+        weighted_similarity = self.calculate_weighted_similarity(similarities, valid_sides)
         
-        # Enhanced overall confidence 
-        if average_similarity >= 0.85 and all_matches:
+        # Also calculate simple average for comparison
+        simple_average = sum(similarities.values()) / len(similarities) if similarities else 0.0
+        
+        # Enhanced overall confidence based on weighted similarity
+        if weighted_similarity >= 0.85 and all_matches:
             overall_confidence = "Very High"
-        elif average_similarity >= self.SIMILARITY_THRESHOLD and all_matches:
+        elif weighted_similarity >= self.SIMILARITY_THRESHOLD and all_matches:
             overall_confidence = "High"
-        elif average_similarity >= 0.7:
+        elif weighted_similarity >= 0.7:
             overall_confidence = "Medium"
         else:
             overall_confidence = "Low"
         
+        # Enhanced matching logic: Consider same car if weighted similarity >= 80% even if some sides fail
+        weighted_threshold = 0.80
+        is_same_car_weighted = weighted_similarity >= weighted_threshold
+        is_same_car_traditional = all_matches and weighted_similarity >= self.SIMILARITY_THRESHOLD
+        
+        # Use weighted approach as primary decision
+        final_is_same_car = is_same_car_weighted
+        
         results["overall_result"] = {
-            "is_same_car": all_matches and average_similarity >= self.SIMILARITY_THRESHOLD,
-            "average_similarity": round(average_similarity, 4),
+            "is_same_car": final_is_same_car,
+            "weighted_similarity": round(weighted_similarity, 4),
+            "average_similarity": round(simple_average, 4),  # Keep simple average for comparison
             "confidence": overall_confidence,
             "matched_sides": sum(1 for side in sides if results.get(side, {}).get("is_match", False)),
-            "valid_comparisons": valid_comparisons,
-            "detection_method": "YOLOv11 + InceptionV3 + Basic Processing + Stored Features",
+            "valid_comparisons": len(valid_sides),
+            "detection_method": "YOLOv11 + InceptionV3 + Weighted Processing + Cosine Similarity",
             "similarity_thresholds": {
                 "default": self.SIMILARITY_THRESHOLD,
-                "back": self.BACK_SIMILARITY_THRESHOLD
+                "back": self.BACK_SIMILARITY_THRESHOLD,
+                "weighted_threshold": weighted_threshold
             },
-            "model_architecture": "InceptionV3 with Basic Processing and pre-computed reference features",
-            "optimization": "Reference features pre-computed and stored in database for faster verification"
+            "model_architecture": "InceptionV3 with Global Average Pooling for feature extraction",
+            "view_weights": self.VIEW_WEIGHTS,
+            "weighting_explanation": "Front and back views weighted more heavily (35% each) as they are more distinctive than side views (15% each)",
+            "matching_logic": f"Same car if weighted similarity >= {weighted_threshold*100}% even if individual sides fail their thresholds"
         }
         
-        print(f"✅ Verification complete! Average similarity: {average_similarity:.4f}")
+        print(f"✅ Verification complete! Weighted similarity: {weighted_similarity:.4f}, Simple average: {simple_average:.4f}")
         print("⚡ Used stored reference features for faster processing")
         
         return results 

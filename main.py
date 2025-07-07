@@ -844,4 +844,8 @@ async def delete_test_case(case_id: int, db: Session = Depends(get_db)):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True) 
+    import ssl
+    # Replace with the actual paths to your certificate and private key
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER) 
+    context.load_cert_chain('cert.pem', 'key.pem')
+    uvicorn.run(app, host="0.0.0.0", port=443, ssl_context=context)

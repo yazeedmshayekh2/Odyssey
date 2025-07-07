@@ -375,6 +375,6 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 
 ---
 
-**Powered by InceptionV3 + YOLOv11** 🚗🧠
+**Powered by InceptionV3 + YOLOv11** 🚗🧠 
 
 *Built with ❤️ for accurate car verification* 
