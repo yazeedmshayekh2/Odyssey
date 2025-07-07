@@ -105,6 +105,16 @@ def prepare_image_for_pdf(image_path: str, max_width: float = 1.5*inch, max_heig
         print(f"Error preparing image {image_path}: {e}")
         return None
 
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for monitoring and ngrok testing"""
+    return {
+        "status": "healthy",
+        "service": "Car Verification API",
+        "version": "1.0.0",
+        "timestamp": datetime.now().isoformat()
+    }
+
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     """Home page with upload forms"""
