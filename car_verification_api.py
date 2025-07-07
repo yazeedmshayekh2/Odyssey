@@ -433,7 +433,7 @@ async def verify_car_images(
             # Perform verification using stored features (much faster!)
             verification_results = verifier.verify_with_stored_features(stored_reference_features, uploaded_images, save_visualizations=True, vis_dir=vis_dir)
             
-                else:
+        else:
             # Fallback to old method if no stored features (backwards compatibility)
             print("⚠️ No stored features found, falling back to real-time feature extraction")
             

@@ -1,5 +1,5 @@
-from fastapi import FastAPI, File, UploadFile, Form, Depends, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
+from fastapi import FastAPI, File, UploadFile, Form, Depends, HTTPException, Request, BackgroundTasks
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -19,6 +19,11 @@ from reportlab.lib.units import inch
 from reportlab.lib import colors
 import tempfile
 from PIL import Image as PILImage
+import asyncio
+from collections import deque
+import queue
+import threading
+import requests
 
 from database import get_db, CarReference, VerificationAttempt, serialize_features, deserialize_features
 from models import (
@@ -26,7 +31,6 @@ from models import (
     CarVerificationResult, VerificationAttemptResponse, UploadResponse,
     ImageComparisonResult
 )
-from car_verification import CarImageVerifier
 
 app = FastAPI(title="Car Verification System", version="1.0.0")
 
@@ -44,8 +48,6 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 # Templates
 templates = Jinja2Templates(directory="templates")
 
-# Initialize car verifier
-verifier = CarImageVerifier()
 
 # Allowed image extensions
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".webp"}
@@ -105,6 +107,9 @@ def prepare_image_for_pdf(image_path: str, max_width: float = 1.5*inch, max_heig
         print(f"Error preparing image {image_path}: {e}")
         return None
 
+# Create a queue for bulk upload status updates
+bulk_upload_status_queue = queue.Queue()
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint for monitoring and ngrok testing"""
@@ -114,6 +119,67 @@ async def health_check():
         "version": "1.0.0",
         "timestamp": datetime.now().isoformat()
     }
+
+@app.get('/bulk-upload-status')
+async def bulk_upload_status():
+    """Server-Sent Events endpoint for bulk upload status"""
+    async def event_generator():
+        while True:
+            try:
+                # Non-blocking check for new status updates
+                try:
+                    status = bulk_upload_status_queue.get_nowait()
+                    yield f"data: {json.dumps(status)}\n\n"
+                except queue.Empty:
+                    await asyncio.sleep(0.1)  # Small delay to prevent CPU spinning
+            except Exception as e:
+                print(f"Error in SSE stream: {e}")
+                break
+    
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
+
+@app.post("/bulk-upload")
+async def start_bulk_upload(background_tasks: BackgroundTasks, 
+                           batch_size: int = 10, 
+                           start_idx: int = 0):
+    """Start bulk upload process in the background"""
+    try:
+        # Import the bulk uploader
+        from bulk_upload_imagin import BulkImageUploader
+        
+        def status_callback(status_data):
+            """Callback to receive status updates from BulkImageUploader"""
+            bulk_upload_status_queue.put(status_data)
+        
+        def run_bulk_upload():
+            uploader = BulkImageUploader()
+            uploader.run_bulk_upload(
+                excel_file="odysseydatasetcarimages.xlsx",
+                start_idx=start_idx,
+                batch_size=batch_size,
+                status_callback=status_callback
+            )
+        
+        # Start the bulk upload in background
+        background_tasks.add_task(run_bulk_upload)
+        
+        return {
+            "message": "Bulk upload started in background",
+            "batch_size": batch_size,
+            "start_index": start_idx,
+            "status": "started"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to start bulk upload: {str(e)}")
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
@@ -448,6 +514,84 @@ async def delete_reference(model: str, year: int, db: Session = Depends(get_db))
     db.commit()
     
     return {"message": f"Reference for {model} {year} deleted successfully"}
+
+@app.delete("/reference/{reference_id}")
+async def delete_reference_by_id(reference_id: int, db: Session = Depends(get_db)):
+    """Delete a car reference by ID with comprehensive cleanup"""
+    reference = db.query(CarReference).filter(CarReference.id == reference_id).first()
+    if not reference:
+        raise HTTPException(status_code=404, detail="Reference not found")
+    
+    # Get car info for response
+    car_info = f"{reference.model} {reference.year}"
+    
+    # Delete all associated files
+    file_paths = [
+        reference.front_image_path,
+        reference.back_image_path,
+        reference.left_image_path,
+        reference.right_image_path,
+        reference.front_processed_path,
+        reference.back_processed_path,
+        reference.left_processed_path,
+        reference.right_processed_path,
+        reference.front_detection_path,
+        reference.back_detection_path,
+        reference.left_detection_path,
+        reference.right_detection_path
+    ]
+    
+    deleted_files = []
+    failed_files = []
+    
+    for file_path in file_paths:
+        if file_path and os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+                deleted_files.append(file_path)
+            except Exception as e:
+                failed_files.append(f"{file_path}: {str(e)}")
+                print(f"Warning: Could not delete file {file_path}: {e}")
+    
+    # Try to delete the car directory if it's empty
+    if reference.front_image_path:
+        car_dir = os.path.dirname(reference.front_image_path)
+        try:
+            if os.path.exists(car_dir) and len(os.listdir(car_dir)) == 0:
+                os.rmdir(car_dir)
+                deleted_files.append(f"Directory: {car_dir}")
+        except Exception as e:
+            print(f"Warning: Could not delete directory {car_dir}: {e}")
+    
+    # Try to delete visualization directories
+    try:
+        import glob
+        import shutil
+        vis_pattern = f"static/visualizations/reference_{reference.model}_{reference.year}_*"
+        vis_dirs = glob.glob(vis_pattern)
+        for vis_dir in vis_dirs:
+            if os.path.isdir(vis_dir):
+                try:
+                    shutil.rmtree(vis_dir)
+                    deleted_files.append(f"Visualization: {vis_dir}")
+                except Exception as e:
+                    failed_files.append(f"Visualization {vis_dir}: {str(e)}")
+    except Exception as e:
+        print(f"Warning: Error during visualization cleanup: {e}")
+    
+    # Delete from database
+    db.delete(reference)
+    db.commit()
+    
+    return {
+        "message": f"Reference '{car_info}' deleted successfully",
+        "deleted_files": len(deleted_files),
+        "failed_files": len(failed_files),
+        "details": {
+            "deleted": deleted_files[:10],  # Limit to first 10 for response size
+            "failed": failed_files
+        }
+    }
 
 @app.get("/list-test-cases")
 async def list_test_cases(db: Session = Depends(get_db)):
@@ -866,6 +1010,82 @@ async def delete_test_case(case_id: int, db: Session = Depends(get_db)):
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error deleting test case: {str(e)}")
+
+@app.post("/verify-with-studio-images")
+async def verify_with_studio_images(
+    uploaded_front: UploadFile = File(...),
+    uploaded_back: UploadFile = File(...),
+    uploaded_left: UploadFile = File(...),
+    uploaded_right: UploadFile = File(...),
+    studio_front_url: str = Form(...),
+    studio_back_url: str = Form(...),
+    studio_left_url: str = Form(...),
+    studio_right_url: str = Form(...),
+    plate_number: str = Form(...),
+    color: str = Form(...)
+):
+    """Compare uploaded images to studio images and return similarity results, with plate number and color."""
+    try:
+        # Helper to download image from URL
+        def download_image(url, save_dir, prefix):
+            response = requests.get(url, stream=True)
+            if response.status_code != 200:
+                raise Exception(f"Failed to download image from {url}")
+            ext = os.path.splitext(url)[1] or ".jpg"
+            filename = f"{prefix}_{uuid.uuid4().hex}{ext}"
+            path = os.path.join(save_dir, filename)
+            with open(path, "wb") as f:
+                for chunk in response.iter_content(1024):
+                    f.write(chunk)
+            return path
+
+        # Create temp dir for studio images
+        temp_dir = tempfile.mkdtemp(prefix="studio_compare_")
+        try:
+            # Save uploaded images
+            uploaded_paths = {}
+            for side, file in zip(["front", "back", "left", "right"], [uploaded_front, uploaded_back, uploaded_left, uploaded_right]):
+                uploaded_paths[side] = save_uploaded_file(file, temp_dir, f"uploaded_{side}")
+
+            # Download studio images
+            studio_urls = {
+                "front": studio_front_url,
+                "back": studio_back_url,
+                "left": studio_left_url,
+                "right": studio_right_url
+            }
+            studio_paths = {}
+            for side, url in studio_urls.items():
+                studio_paths[side] = download_image(url, temp_dir, f"studio_{side}")
+
+            # Compare each pair (uploaded vs studio)
+            results = {}
+            for side in ["front", "back", "left", "right"]:
+                # Use the same logic as in verify_car_images, but for a single pair
+                pair_result = verifier.verify_pair(uploaded_paths[side], studio_paths[side])
+                results[side] = {
+                    "cosine_similarity": pair_result.get("cosine_similarity", 0.0),
+                    "is_match": pair_result.get("is_match", False),
+                    "confidence": pair_result.get("confidence", "Unknown"),
+                    "error": pair_result.get("error")
+                }
+
+            # Calculate overall similarity (average)
+            similarities = [results[side]["cosine_similarity"] for side in ["front", "back", "left", "right"]]
+            avg_similarity = sum(similarities) / len(similarities)
+
+            return {
+                "plate_number": plate_number,
+                "color": color,
+                "results": results,
+                "average_similarity": avg_similarity
+            }
+        finally:
+            # Clean up temp files
+            import shutil
+            shutil.rmtree(temp_dir, ignore_errors=True)
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 if __name__ == "__main__":
     import uvicorn

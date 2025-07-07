@@ -231,24 +231,49 @@
             border-radius: 10px;
             margin: 20px 0;
             font-weight: 500;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            animation: slideIn 0.5s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        #alertContainer .alert {
+            margin: 0 0 10px 0;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
         }
         
         .alert-success {
-            background: #d4edda;
+            background: rgba(212, 237, 218, 0.95);
             color: #155724;
             border: 1px solid #c3e6cb;
         }
         
         .alert-error {
-            background: #f8d7da;
+            background: rgba(248, 215, 218, 0.95);
             color: #721c24;
             border: 1px solid #f5c6cb;
         }
         
+        .alert-warning {
+            background: rgba(255, 243, 205, 0.95);
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+        
         .alert-info {
-            background: #cce7ff;
-            color: #004085;
-            border: 1px solid #99d5ff;
+            background: rgba(209, 236, 241, 0.95);
+            color: #0c5460;
+            border: 1px solid #bee5eb;
         }
         
         .verification-result {
@@ -1174,7 +1199,66 @@
                 <p>All reference images are processed using our InceptionV3 + YOLOv11 pipeline for robust feature extraction and storage in our vehicle database.</p>
             </div>
             
-            <div id="referencesList" class="car-references">
+            <!-- References Control Panel -->
+            <div class="references-controls" style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #dee2e6;">
+                <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 250px;">
+                        <label for="carSelector" style="display: block; font-weight: 600; margin-bottom: 5px; color: #495057;">🚗 Select Car Model:</label>
+                        <select id="carSelector" onchange="selectCar(this.value)" style="width: 100%; padding: 8px 12px; border: 2px solid #dee2e6; border-radius: 6px; font-size: 14px; background: white;">
+                            <option value="">Choose a car to view its reference images...</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; gap: 10px; align-items: end;">
+                        <button onclick="loadReferencesWithSelector()" class="btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: 600;">
+                            🔄 Refresh List
+                        </button>
+                        <button onclick="bulkUploadCars()" class="btn" style="background: linear-gradient(135deg, #43cea2 0%, #185a9d 100%); color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: 600;">
+                            📥 Bulk Upload
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Summary Stats -->
+                <div id="referenceStats" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #dee2e6; font-size: 14px; color: #6c757d;">
+                    <span id="totalCarsCount">Loading...</span> • <span id="totalImagesCount">Calculating...</span>
+                </div>
+            </div>
+            
+            <!-- Selected Car Display Area -->
+            <div id="selectedCarDisplay" style="display: none;">
+                <div class="selected-car-header" style="margin-bottom: 20px; padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 8px;">
+                    <h3 id="selectedCarTitle" style="margin: 0 0 5px 0; font-size: 24px; font-weight: 700;">🚗 Car Model</h3>
+                    <p id="selectedCarInfo" style="margin: 0; opacity: 0.9; font-size: 14px;">📅 Added on date • 🧠 AI-processed with InceptionV3</p>
+                </div>
+                
+                <!-- Image View Controls -->
+                <div class="image-view-controls" style="text-align: center; margin-bottom: 20px;">
+                    <button id="toggleViewBtn" onclick="toggleImageView()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 10px 20px; border-radius: 20px; cursor: pointer; font-size: 14px; font-weight: 600; margin-right: 10px;">
+                        🎯 Show Detection Images
+                    </button>
+                    <button id="deleteCarBtn" onclick="deleteSelectedCar()" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); color: white; border: none; padding: 10px 20px; border-radius: 20px; cursor: pointer; font-size: 14px; font-weight: 600; margin-left: 10px;">
+                        🗑️ Delete Car
+                    </button>
+                    <div style="font-size: 12px; color: #6c757d; margin-top: 8px;">
+                        <span style="margin-right: 20px;">Click to toggle between original, detection, and AI-processed images</span>
+                        <span style="color: #e74c3c;">⚠️ Delete will permanently remove this car and all its data</span>
+                    </div>
+                </div>
+                
+                <!-- Car Images Container -->
+                <div id="carImagesContainer" class="reference-images">
+                    <!-- Images will be loaded here -->
+                </div>
+            </div>
+            
+            <!-- Default Message -->
+            <div id="defaultMessage" class="empty-state">
+                <h3>🔍 Select a Car</h3>
+                <p>Choose a car model from the dropdown above to view its reference images and AI processing details.</p>
+            </div>
+            
+            <!-- All References List (Hidden by default) -->
+            <div id="referencesList" class="car-references" style="display: none;">
                 <div class="empty-state">
                     <h3>🔄 Loading references...</h3>
                     <p>Please wait while we fetch your stored car references.</p>
@@ -1200,7 +1284,7 @@
             
             // Load references when references tab is opened
             if (tabName === 'references') {
-                loadReferences();
+                loadReferencesWithSelector();
             }
         }
 
@@ -1596,25 +1680,54 @@
 
         // Show alert message
         function showAlert(message, type) {
-            // Remove existing alerts
-            const existingAlerts = document.querySelectorAll('.alert');
-            existingAlerts.forEach(alert => alert.remove());
+            // Create container for alerts if it doesn't exist
+            let alertContainer = document.getElementById('alertContainer');
+            if (!alertContainer) {
+                alertContainer = document.createElement('div');
+                alertContainer.id = 'alertContainer';
+                alertContainer.style.position = 'fixed';
+                alertContainer.style.top = '20px';
+                alertContainer.style.right = '20px';
+                alertContainer.style.zIndex = '1000';
+                alertContainer.style.maxWidth = '400px';
+                document.body.appendChild(alertContainer);
+            }
             
             // Create new alert
             const alert = document.createElement('div');
             alert.className = `alert alert-${type}`;
+            alert.style.marginBottom = '10px';
+            alert.style.opacity = '1';
+            alert.style.transition = 'opacity 0.5s ease';
             alert.innerHTML = message;
             
-            // Insert after the active tab content
-            const activeTab = document.querySelector('.tab-content.active');
-            activeTab.insertBefore(alert, activeTab.firstChild);
+            // Add close button
+            const closeBtn = document.createElement('span');
+            closeBtn.innerHTML = '&times;';
+            closeBtn.style.float = 'right';
+            closeBtn.style.cursor = 'pointer';
+            closeBtn.style.marginLeft = '10px';
+            closeBtn.onclick = function() {
+                alert.style.opacity = '0';
+                setTimeout(() => alert.remove(), 500);
+            };
+            alert.insertBefore(closeBtn, alert.firstChild);
             
-            // Auto-remove after 5 seconds
+            // Add to container
+            alertContainer.appendChild(alert);
+            
+            // Auto-remove after delay (longer for bulk upload status)
+            const isUploadStatus = message.includes('Bulk upload') || message.includes('Processing car');
+            const delay = isUploadStatus ? 10000 : 5000; // 10 seconds for upload status, 5 seconds for others
+            
+            setTimeout(() => {
+                alert.style.opacity = '0';
             setTimeout(() => {
                 if (alert.parentNode) {
                     alert.remove();
                 }
-            }, 5000);
+                }, 500);
+            }, delay);
         }
 
         // Toggle between original, detection, and processed images
@@ -1658,9 +1771,371 @@
             }
         }
 
+        // Enhanced References Functions
+        let allReferences = [];
+        let selectedCarData = null;
+        let currentImageView = 'original'; // 'original', 'detection', 'processed'
+
+        // Load references with the new selector interface
+        async function loadReferencesWithSelector() {
+            const carSelector = document.getElementById('carSelector');
+            const totalCarsCount = document.getElementById('totalCarsCount');
+            const totalImagesCount = document.getElementById('totalImagesCount');
+            
+            try {
+                const response = await fetch('/references');
+                allReferences = await response.json();
+                
+                // Clear selector
+                carSelector.innerHTML = '<option value="">Choose a car to view its reference images...</option>';
+                
+                if (allReferences.length === 0) {
+                    totalCarsCount.textContent = '0 cars available';
+                    totalImagesCount.textContent = '0 images stored';
+                    return;
+                }
+                
+                // Group cars by model and year for better organization
+                const carGroups = {};
+                let totalImages = 0;
+                
+                allReferences.forEach((ref, index) => {
+                    const model = ref.model || 'Unknown';
+                    const year = ref.year || 'Unknown';
+                    const key = `${model} ${year}`;
+                    
+                    if (!carGroups[key]) {
+                        carGroups[key] = {
+                            model: model,
+                            year: year,
+                            data: ref,
+                            index: index
+                        };
+                    }
+                    
+                    // Count images
+                    if (ref.front_image_path) totalImages++;
+                    if (ref.back_image_path) totalImages++;
+                    if (ref.left_image_path) totalImages++;
+                    if (ref.right_image_path) totalImages++;
+                });
+                
+                // Sort car groups alphabetically
+                const sortedKeys = Object.keys(carGroups).sort();
+                
+                // Populate selector
+                sortedKeys.forEach(key => {
+                    const car = carGroups[key];
+                    const option = document.createElement('option');
+                    option.value = car.index;
+                    option.textContent = `🚗 ${car.model} ${car.year}`;
+                    carSelector.appendChild(option);
+                });
+                
+                // Update stats
+                totalCarsCount.textContent = `${Object.keys(carGroups).length} cars available`;
+                totalImagesCount.textContent = `${totalImages} images stored`;
+                
+                showAlert(`✅ Loaded ${Object.keys(carGroups).length} car references successfully!`, 'success');
+                
+            } catch (error) {
+                console.error('Error loading references:', error);
+                totalCarsCount.textContent = 'Error loading';
+                totalImagesCount.textContent = 'Error loading';
+                showAlert(`❌ Error loading references: ${error.message}`, 'error');
+            }
+        }
+
+        // Select a specific car and display its images
+        function selectCar(index) {
+            const selectedCarDisplay = document.getElementById('selectedCarDisplay');
+            const defaultMessage = document.getElementById('defaultMessage');
+            
+            if (!index || index === '') {
+                // No car selected
+                selectedCarDisplay.style.display = 'none';
+                defaultMessage.style.display = 'block';
+                selectedCarData = null;
+                return;
+            }
+            
+            // Get selected car data
+            selectedCarData = allReferences[parseInt(index)];
+            if (!selectedCarData) {
+                showAlert('❌ Error: Could not find selected car data', 'error');
+                return;
+            }
+            
+            // Update header
+            const selectedCarTitle = document.getElementById('selectedCarTitle');
+            const selectedCarInfo = document.getElementById('selectedCarInfo');
+            
+            selectedCarTitle.textContent = `🚗 ${selectedCarData.model || 'Unknown'} ${selectedCarData.year || 'Unknown'}`;
+            
+            const createdDate = selectedCarData.created_at ? new Date(selectedCarData.created_at).toLocaleDateString() : 'Unknown';
+            selectedCarInfo.textContent = `📅 Added on ${createdDate} • 🧠 AI-processed with InceptionV3 • 🎯 YOLOv11 Detection`;
+            
+            // Reset to original view
+            currentImageView = 'original';
+            const toggleViewBtn = document.getElementById('toggleViewBtn');
+            toggleViewBtn.textContent = '🎯 Show Detection Images';
+            
+            // Display images
+            displayCarImages();
+            
+            // Show selected car display
+            selectedCarDisplay.style.display = 'block';
+            defaultMessage.style.display = 'none';
+        }
+
+        // Toggle between different image views
+        function toggleImageView() {
+            if (!selectedCarData) return;
+            
+            const toggleViewBtn = document.getElementById('toggleViewBtn');
+            
+            // Cycle through views
+            if (currentImageView === 'original') {
+                currentImageView = 'detection';
+                toggleViewBtn.textContent = '🧠 Show AI Model Input';
+            } else if (currentImageView === 'detection') {
+                currentImageView = 'processed';
+                toggleViewBtn.textContent = '📷 Show Original Images';
+            } else {
+                currentImageView = 'original';
+                toggleViewBtn.textContent = '🎯 Show Detection Images';
+            }
+            
+            displayCarImages();
+        }
+
+        // Display images for the selected car
+        function displayCarImages() {
+            if (!selectedCarData) return;
+            
+            const carImagesContainer = document.getElementById('carImagesContainer');
+            let viewTitle = '';
+            let viewDescription = '';
+            let imagePaths = {};
+            
+            // Determine which images to show based on current view
+            if (currentImageView === 'original') {
+                viewTitle = '📁 Original Uploaded Images';
+                viewDescription = 'High-quality reference images as uploaded by the user';
+                imagePaths = {
+                    front: selectedCarData.front_image_path,
+                    back: selectedCarData.back_image_path,
+                    left: selectedCarData.left_image_path,
+                    right: selectedCarData.right_image_path
+                };
+            } else if (currentImageView === 'detection') {
+                viewTitle = '🎯 Car Detection Visualization (YOLOv11)';
+                viewDescription = 'Detection bounding boxes and confidence scores from YOLOv11 model';
+                imagePaths = {
+                    front: selectedCarData.front_detection_path,
+                    back: selectedCarData.back_detection_path,
+                    left: selectedCarData.left_detection_path,
+                    right: selectedCarData.right_detection_path
+                };
+            } else { // processed
+                viewTitle = '🧠 AI Model Input (Preprocessed Images)';
+                viewDescription = 'Images after detection, cropping, and preprocessing - exactly what InceptionV3 sees';
+                imagePaths = {
+                    front: selectedCarData.front_processed_path,
+                    back: selectedCarData.back_processed_path,
+                    left: selectedCarData.left_processed_path,
+                    right: selectedCarData.right_processed_path
+                };
+            }
+            
+            // Build HTML
+            let html = `
+                <div style="text-align: center; margin-bottom: 15px;">
+                    <h4 style="margin: 0; color: #495057; font-size: 16px; font-weight: 600;">${viewTitle}</h4>
+                    <p style="margin: 5px 0 0 0; font-size: 12px; color: #6c757d; background: #f8f9fa; padding: 8px; border-radius: 6px;">${viewDescription}</p>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 20px;">
+            `;
+            
+            // Add images
+            ['front', 'back', 'left', 'right'].forEach(view => {
+                const imagePath = imagePaths[view];
+                const viewIcon = {
+                    front: '⬆️',
+                    back: '⬇️',
+                    left: '⬅️',
+                    right: '➡️'
+                }[view];
+                
+                if (imagePath) {
+                    html += `
+                        <div class="reference-image" style="text-align: center; background: white; border: 2px solid #dee2e6; border-radius: 12px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.3s ease;">
+                            <img src="${imagePath}" 
+                                 alt="${view} view" 
+                                 onclick="window.open('${imagePath}', '_blank')" 
+                                 style="width: 100%; height: 200px; object-fit: cover; border-radius: 8px; cursor: pointer; transition: transform 0.2s ease;" 
+                                 onmouseover="this.style.transform='scale(1.05)'" 
+                                 onmouseout="this.style.transform='scale(1)'"
+                                 title="Click to view full-size">
+                            <p style="margin: 10px 0 0 0; font-weight: 600; color: #495057; text-transform: capitalize;">${viewIcon} ${view} View</p>
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div class="reference-image" style="text-align: center; background: #f8f9fa; border: 2px dashed #dee2e6; border-radius: 12px; padding: 15px;">
+                            <div style="display: flex; align-items: center; justify-content: center; height: 200px; color: #6c757d; flex-direction: column;">
+                                <span style="font-size: 24px; margin-bottom: 10px;">📷</span>
+                                <span>No ${currentImageView} data available</span>
+                            </div>
+                            <p style="margin: 10px 0 0 0; font-weight: 600; color: #6c757d; text-transform: capitalize;">${viewIcon} ${view} View</p>
+                        </div>
+                    `;
+                }
+            });
+            
+            html += '</div>';
+            carImagesContainer.innerHTML = html;
+        }
+
+        // Delete selected car function
+        async function deleteSelectedCar() {
+            if (!selectedCarData) {
+                showAlert('❌ No car selected for deletion', 'error');
+                return;
+            }
+            
+            const carInfo = `${selectedCarData.model} ${selectedCarData.year}`;
+            
+            // Confirm deletion
+            const confirmDelete = confirm(
+                `⚠️ Are you sure you want to delete "${carInfo}"?\n\n` +
+                `This will permanently remove:\n` +
+                `• All reference images (original, detection, processed)\n` +
+                `• All AI feature data\n` +
+                `• All visualization files\n` +
+                `• Database records\n\n` +
+                `This action cannot be undone!`
+            );
+            
+            if (!confirmDelete) {
+                return;
+            }
+            
+                         // Get button reference and original text before try block
+             const deleteBtn = document.getElementById('deleteCarBtn');
+             const originalText = deleteBtn ? deleteBtn.textContent : '🗑️ Delete Car';
+             
+             try {
+                 // Show loading state
+                 if (deleteBtn) {
+                     deleteBtn.textContent = '🔄 Deleting...';
+                     deleteBtn.disabled = true;
+                 }
+                
+                showAlert('🗑️ Deleting car reference...', 'info');
+                
+                // Make delete request
+                const response = await fetch(`/reference/${selectedCarData.id}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showAlert(`✅ ${result.message}`, 'success');
+                    
+                    // Show deletion details
+                    if (result.deleted_files > 0) {
+                        console.log('Deleted files:', result.details.deleted);
+                        showAlert(`🗂️ Cleaned up ${result.deleted_files} files and directories`, 'info');
+                    }
+                    
+                    if (result.failed_files > 0) {
+                        console.warn('Failed to delete some files:', result.details.failed);
+                        showAlert(`⚠️ Warning: ${result.failed_files} files could not be deleted`, 'warning');
+                    }
+                    
+                    // Reset the interface
+                    selectedCarData = null;
+                    document.getElementById('selectedCarDisplay').style.display = 'none';
+                    document.getElementById('defaultMessage').style.display = 'block';
+                    
+                    // Reset car selector
+                    const carSelector = document.getElementById('carSelector');
+                    carSelector.value = '';
+                    
+                    // Reload the references list
+                    await loadReferencesWithSelector();
+                    
+                } else {
+                    throw new Error(result.detail || 'Failed to delete car reference');
+                }
+                
+            } catch (error) {
+                console.error('Error deleting car:', error);
+                showAlert(`❌ Error deleting car: ${error.message}`, 'error');
+                
+                         } finally {
+                 // Restore button state
+                 if (deleteBtn) {
+                     deleteBtn.textContent = originalText;
+                     deleteBtn.disabled = false;
+                 }
+             }
+        }
+
+        // Bulk upload function
+        function bulkUploadCars() {
+            showAlert('🚀 Starting bulk upload process...', 'info');
+            
+            // Create and submit the form
+            const form = document.createElement('form');
+            form.action = '/bulk-upload';
+            form.method = 'POST';
+            form.style.display = 'none';
+            document.body.appendChild(form);
+            
+            // Submit form and start listening for updates
+            form.submit();
+            
+            // Connect to SSE for status updates
+            const eventSource = new EventSource('/bulk-upload-status');
+            
+            eventSource.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                
+                // Show status updates as alerts
+                if (data.status === 'started') {
+                    showAlert(`🚀 Bulk upload started - Processing batch ${data.batch_size} cars starting from index ${data.start_index}`, 'info');
+                } else if (data.status === 'processing') {
+                    showAlert(`⚡ Processing car ${data.current_index} of ${data.total_cars} - ${data.model} ${data.year}`, 'info');
+                } else if (data.status === 'completed') {
+                    showAlert(`✅ Bulk upload completed! Processed ${data.total_processed} cars successfully`, 'success');
+                    if (data.failed_cars > 0) {
+                        showAlert(`⚠️ ${data.failed_cars} cars failed to process`, 'warning');
+                    }
+                    // Reload references list to show new cars
+                    loadReferencesWithSelector();
+                    // Close the SSE connection
+                    eventSource.close();
+                } else if (data.status === 'error') {
+                    showAlert(`❌ Error during bulk upload: ${data.error}`, 'error');
+                    // Close the SSE connection on error
+                    eventSource.close();
+                }
+            };
+            
+            eventSource.onerror = function(error) {
+                showAlert('❌ Error connecting to bulk upload status feed', 'error');
+                console.error('EventSource error:', error);
+                eventSource.close();
+            };
+        }
+
         // Load references on page load
         document.addEventListener('DOMContentLoaded', function() {
             loadReferences();
+            loadReferencesWithSelector();
         });
         
         // Test Case Management Functions
